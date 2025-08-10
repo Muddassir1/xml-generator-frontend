@@ -66,12 +66,11 @@ export default function DeclarationTableRow({ selected, row, handleClick, onSave
           </Typography>
         </TableCell>
 
-        <TableCell>{importer.number}</TableCell>
-        <TableCell>{exporter.number}</TableCell>
+        <TableCell>{importer.name}</TableCell>
+        <TableCell>{exporter.name}</TableCell>
         <TableCell>{packages.pkgCount}</TableCell>
-        <TableCell>{`${packages.grossWt} ${packages.grossWtUnit}`}</TableCell>
-        <TableCell>{valuation.netCost}</TableCell>
-        <TableCell>{valuation.currency}</TableCell>
+        <TableCell>{`${packages.grossWt} lbs`}</TableCell>
+        <TableCell>${valuation.netCost}</TableCell>
 
         <TableCell align="right">
           <IconButton onClick={handleOpenMenu}>

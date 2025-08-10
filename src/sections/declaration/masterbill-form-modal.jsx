@@ -1,4 +1,5 @@
 import {
+  Autocomplete,
   Box,
   Button,
   Dialog,
@@ -12,12 +13,17 @@ import {
 } from '@mui/material';
 import axios from 'axios';
 import { useEffect, useState } from 'react';
+import { airlines } from 'src/_mock/airlines';
+import { packageTypes } from 'src/_mock/package_types';
+import { ports } from 'src/_mock/ports';
+import { shippingAgents } from 'src/_mock/shipping_agents';
+import { vessels } from 'src/_mock/vessels';
+import useDeclarationsApi from 'src/hooks/useDeclarationsApi';
 
 export default function MasterBillForm({ open, onClose, onSubmit }) {
   const [formData, setFormData] = useState({
-    importer: { id: '', number: '' },
+    // importer: { id: '', number: '' },
     exporter: { id: '', number: '' },
-    finance: '',
     consignment: {
       departureDate: '',
       arrivalDate: '',
@@ -35,6 +41,7 @@ export default function MasterBillForm({ open, onClose, onSubmit }) {
     },
     packages: {
       pkgCount: '',
+      pkgType: '',
       grossWt: '',
       grossVol: '',
       contents: '',
@@ -46,12 +53,14 @@ export default function MasterBillForm({ open, onClose, onSubmit }) {
     },
   });
 
-  const [users, setUsers] = useState([]);
+  const [mode, setMode] = useState('AIR');
+  const { users, exporters, fetchUsers, fetchExporters } = useDeclarationsApi();
+
   useEffect(() => {
-    axios.get('http://localhost:3001/users')
-      .then(res => setUsers(res.data))
-      .catch(console.error);
-  }, []);
+    if (users.length === 0) fetchUsers();
+    if (exporters.length === 0) fetchExporters();
+  }, [users, exporters, fetchUsers, fetchExporters]);
+
 
   const handleChange = (path, value) => {
     const keys = path.split('.');
@@ -67,7 +76,8 @@ export default function MasterBillForm({ open, onClose, onSubmit }) {
   };
 
   const handleSelectUser = (type, userId) => {
-    const selectedUser = users.find((u) => u.id === userId);
+    const userList = type === 'importer' ? users : exporters;
+    const selectedUser = userList.find((u) => u.id === userId);
     setFormData((prev) => ({
       ...prev,
       [type]: {
@@ -84,9 +94,8 @@ export default function MasterBillForm({ open, onClose, onSubmit }) {
   useEffect(() => {
     if (!open) {
       setFormData({
-        importer: { id: '', number: '' },
+        // importer: { id: '', number: '' },
         exporter: { id: '', number: '' },
-        finance: '',
         consignment: {
           departureDate: '',
           arrivalDate: '',
@@ -104,6 +113,7 @@ export default function MasterBillForm({ open, onClose, onSubmit }) {
         },
         packages: {
           pkgCount: '',
+          pkgType: '',
           grossWt: '',
           grossVol: '',
           contents: '',
@@ -122,8 +132,19 @@ export default function MasterBillForm({ open, onClose, onSubmit }) {
       <DialogTitle>Master Bill Form</DialogTitle>
       <DialogContent>
         <Box display="flex" flexDirection="column" gap={2} mt={1}>
-          {/* Importer */}
           <FormControl fullWidth>
+            <InputLabel>How are the goods being transported</InputLabel>
+            <Select
+              value={formData.consignment.transportMode}
+              label="Transport Mode"
+              onChange={(e) => { setMode(e.target.value); handleChange('consignment.transportMode', e.target.value); }}
+            >
+              <MenuItem value="AIR">Air</MenuItem>
+              <MenuItem value="SEA">Ocean</MenuItem>
+            </Select>
+          </FormControl>
+          {/* Importer */}
+         {/*  <FormControl fullWidth>
             <InputLabel>Importer</InputLabel>
             <Select
               value={formData.importer.id}
@@ -142,7 +163,7 @@ export default function MasterBillForm({ open, onClose, onSubmit }) {
             value={formData.importer.number}
             onChange={(e) => handleChange('importer.number', e.target.value)}
             disabled={!!users.find((u) => u.id === formData.importer.id)?.tin}
-          />
+          /> */}
 
           {/* Exporter */}
           <FormControl fullWidth>
@@ -152,7 +173,7 @@ export default function MasterBillForm({ open, onClose, onSubmit }) {
               label="Exporter"
               onChange={(e) => handleSelectUser('exporter', e.target.value)}
             >
-              {users.map((u) => (
+              {exporters.map((u) => (
                 <MenuItem key={u.id} value={u.id}>
                   {u.name || u.email}
                 </MenuItem>
@@ -163,14 +184,7 @@ export default function MasterBillForm({ open, onClose, onSubmit }) {
             label="Exporter Number"
             value={formData.exporter.number}
             onChange={(e) => handleChange('exporter.number', e.target.value)}
-            disabled={!!users.find((u) => u.id === formData.exporter.id)?.tin}
-          />
-
-          {/* Finance */}
-          <TextField
-            label="Finance"
-            value={formData.finance}
-            onChange={(e) => handleChange('finance', e.target.value)}
+            disabled={!!exporters.find((u) => u.id === formData.exporter.id)?.tin}
           />
 
           {/* Consignment */}
@@ -192,60 +206,107 @@ export default function MasterBillForm({ open, onClose, onSubmit }) {
               handleChange('consignment.arrivalDate', e.target.value)
             }
           />
-          <TextField
-            label="Export Country"
-            value={formData.consignment.exportCountry}
-            onChange={(e) =>
-              handleChange('consignment.exportCountry', e.target.value)
-            }
-          />
-          <TextField
-            label="Import Country"
-            value={formData.consignment.importCountry}
-            onChange={(e) =>
-              handleChange('consignment.importCountry', e.target.value)
-            }
-          />
-          <TextField
-            label="Shipping Port"
-            value={formData.consignment.shippingPort}
-            onChange={(e) =>
-              handleChange('consignment.shippingPort', e.target.value)
-            }
-          />
-          <TextField
-            label="Discharge Port"
-            value={formData.consignment.dischargePort}
-            onChange={(e) =>
-              handleChange('consignment.dischargePort', e.target.value)
-            }
-          />
-          <TextField
-            label="Transport Mode"
-            value={formData.consignment.transportMode}
-            onChange={(e) =>
-              handleChange('consignment.transportMode', e.target.value)
-            }
-          />
+
+
+          <FormControl fullWidth>
+            <Autocomplete
+              options={ports}
+              filterOptions={(options, state) => {
+                const filtered = options.filter((option) => {
+                  if (mode === 'AIR') {
+                    return option.type === 'Airport' || option.type === 'Port and Airport';
+                  }
+                  if (mode === 'SEA') {
+                    return option.type === 'Port' || option.type === 'Port and Airport';
+                  }
+                  return true;
+                });
+
+                return filtered
+                  .filter(
+                    (option) =>
+                      option.description.toLowerCase().includes(state.inputValue.toLowerCase())
+                  )
+                  .slice(0, 20);
+              }}
+              getOptionLabel={(option) => option.description}
+              value={ports.find(opt => opt.code === formData.consignment.shippingPort) || null}
+              onChange={(e, newValue) => {
+                setFormData(prev => ({
+                  ...prev,
+                  consignment: {
+                    ...prev.consignment,
+                    shippingPort: newValue ? newValue.code : ''
+                  }
+                }));
+              }}
+              renderInput={(params) => (
+                <TextField {...params} label="Shipping Port" variant="outlined" fullWidth />
+              )}
+              disableClearable
+            />
+
+
+          </FormControl>
 
           {/* Shipment */}
-          <TextField
-            label="Vessel Code"
-            value={formData.shipment.vesselCode}
-            onChange={(e) => handleChange('shipment.vesselCode', e.target.value)}
-          />
-          <TextField
-            label="Voyage No"
-            value={formData.shipment.voyageNo}
-            onChange={(e) => handleChange('shipment.voyageNo', e.target.value)}
-          />
-          <TextField
-            label="Shipping Agent"
-            value={formData.shipment.shippingAgent}
-            onChange={(e) =>
-              handleChange('shipment.shippingAgent', e.target.value)
-            }
-          />
+          <FormControl fullWidth>
+            <InputLabel>{mode === "AIR" ? "Airline" : "Vessel Name"}</InputLabel>
+            <Select
+              value={formData.shipment.vesselCode}
+              label={mode === "AIR" ? "Airline" : "Vessel Name"}
+              onChange={(e) => {handleChange('shipment.vesselCode', e.target.value); handleChange('shipment.voyageNo', '')}}
+            >
+              {(mode === "AIR" ? airlines : vessels).map((u) => (
+                <MenuItem key={u.code} value={u.code}>
+                  {mode === "AIR" ? u.name : u.description}
+                </MenuItem>
+              ))}
+
+            </Select>
+          </FormControl>
+
+          {mode === "AIR" && (
+            <FormControl fullWidth>
+              <InputLabel>Flight Number</InputLabel>
+              <Select
+                value={formData.shipment.voyageNo}
+                label="Select Flight"
+                onChange={(e) => {handleChange('shipment.voyageNo', e.target.value)}}
+              >
+                {airlines.find(item => item.code === formData.shipment.vesselCode)?.flights.map((u) => (
+                  <MenuItem key={u.route} value={u.number}>
+                    {u.route}
+                  </MenuItem>
+                ))}
+
+              </Select>
+            </FormControl>
+          )}
+
+          {mode === "SEA" && (
+            <TextField
+              label="Voyage No"
+              value={formData.shipment.voyageNo}
+              onChange={(e) => handleChange('shipment.voyageNo', e.target.value)}
+            />
+          )}
+
+          <FormControl fullWidth>
+            <InputLabel>Shipping Agent</InputLabel>
+            <Select
+              value={formData.shipment.shippingAgent}
+              label="Shipping Agent"
+              onChange={(e) => handleChange('shipment.shippingAgent', e.target.value)}
+            >
+              {shippingAgents.map((u) => (
+                <MenuItem key={u.code} value={u.code}>
+                  {u.name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
           <TextField
             label="Bill Number"
             value={formData.shipment.billNumber}
@@ -258,6 +319,21 @@ export default function MasterBillForm({ open, onClose, onSubmit }) {
             value={formData.packages.pkgCount}
             onChange={(e) => handleChange('packages.pkgCount', e.target.value)}
           />
+          <FormControl fullWidth>
+            <InputLabel>Package Type</InputLabel>
+            <Select
+              name="packages.pkgType"
+              value={formData.packages.pkgType}
+              onChange={(e) => handleChange('packages.pkgType', e.target.value)}
+              label="Package Type"
+            >
+              {packageTypes.map((type) => (
+                <MenuItem key={type.code} value={type.code}>
+                  {type.name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
           <TextField
             label="Gross Weight"
             value={formData.packages.grossWt}

@@ -36,15 +36,12 @@ const createEmptyTariff = () => ({
   isNew: true, // Flag to identify newly added tariffs
   code: '',
   desc: '',
-  origin: '',
   qty: '',
-  qtyUnit: '',
   cost: '',
   insurance: '',
   freight: '',
   invNumber: '',
   procedure: {
-    code: '',
     importerNumber: '',
   },
 });
@@ -199,14 +196,11 @@ export default function TariffFormModal({ open, onClose, onSave, existingTariffs
                   {[
                     ['code', 'Tariff Code', 'select'],
                     ['desc', 'Description'],
-                    ['origin', 'Origin Country'],
                     ['qty', 'Quantity', 'number'],
-                    ['qtyUnit', 'Quantity Unit'],
                     ['cost', 'Cost', 'number'],
                     ['insurance', 'Insurance', 'number'],
                     ['freight', 'Freight', 'number'],
                     ['invNumber', 'Invoice Number'],
-                    ['procedure.code', 'Procedure Code'],
                     ['procedure.importerNumber', 'Procedure Importer Number']
                   ].map(([name, label, type]) => (
                     <Grid item xs={12} sm={6} key={name}>

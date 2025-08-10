@@ -1,12 +1,14 @@
 // src/hooks/useDeclarationsApi.js
 import { useEffect, useState } from 'react';
 
-const API_URL = 'http://localhost:3001';
+const API_URL = import.meta.env.VITE_BACKEND_URL;
 
 export default function useDeclarationsApi() {
   const [declarations, setDeclarations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [availableCodes, setAvailableCodes] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [exporters, setExporters] = useState([]);
 
   const fetchDeclarations = async () => {
     try {
@@ -29,6 +31,26 @@ export default function useDeclarationsApi() {
       setAvailableCodes(data);
     } catch (err) {
       console.error('Failed to load tariff codes:', err);
+    }
+  };
+
+  const fetchUsers = async () => {
+    try {
+      const res = await fetch(`${API_URL}/users`);
+      const data = await res.json();
+      setUsers(data);
+    } catch (err) {
+      console.error('Failed to load users:', err);
+    }
+  };
+
+  const fetchExporters = async () => {
+    try {
+      const res = await fetch(`${API_URL}/exporters`);
+      const data = await res.json();
+      setExporters(data);
+    } catch (err) {
+      console.error('Failed to load exporters:', err);
     }
   };
 
@@ -99,6 +121,10 @@ export default function useDeclarationsApi() {
     declarations,
     loading,
     availableCodes,
+    users,
+    exporters,
+    fetchUsers,
+    fetchExporters,
     fetchDeclarations,
     saveDeclaration,
     saveTariffs,

@@ -13,6 +13,7 @@ import InputLabel from '@mui/material/InputLabel';
 import Select from '@mui/material/Select';
 import axios from 'axios';
 import { packageTypes } from 'src/_mock/package_types';
+import useDeclarationsApi from 'src/hooks/useDeclarationsApi';
 
 
 const style = {
@@ -37,36 +38,29 @@ const initialFormData = {
     pkgCount: '2',
     pkgType: '',
     grossWt: '2',
-    grossWtUnit: '2',
     grossVol: '2',
-    grossVolUnit: '2',
     contents: '2',
-    categoryOfGoods: '2',
   },
   valuation: {
-    currency: '2',
     netCost: '2',
     netInsurance: '2',
     netFreight: '2',
-    termsOfDelivery: '2',
   },
-  moneyDeclaredFlag: 'N',
 };
 
 export default function DeclarationFormModal({ open, onClose, onSave, editData }) {
   const [formData, setFormData] = useState(initialFormData);
 
-  const [users, setUsers] = useState([]);
   const [selectedImporter, setSelectedImporter] = useState(null);
   const [selectedExporter, setSelectedExporter] = useState(null);
   const [isNewImporter, setIsNewImporter] = useState(false);
   const [isNewExporter, setIsNewExporter] = useState(false);
+  const { users, exporters, fetchUsers, fetchExporters } = useDeclarationsApi();
 
   useEffect(() => {
-    axios.get('http://localhost:3001/users') // replace with your backend endpoint
-      .then(res => setUsers(res.data))
-      .catch(console.error);
-  }, []);
+    if (users.length === 0) fetchUsers();
+    if (exporters.length === 0) fetchExporters();
+  }, [users, exporters, fetchUsers, fetchExporters]);
 
   const handleSelectImporter = (value) => {
     if (value === 'new') {
@@ -82,7 +76,7 @@ export default function DeclarationFormModal({ open, onClose, onSave, editData }
       setSelectedImporter(value);
       setFormData(prev => ({
         ...prev,
-        importer: { id: user?.id, number: user?.tin }
+        importer: { id: user?.id, number: user?.tin, name: user?.name }
       }));
     }
   };
@@ -96,12 +90,12 @@ export default function DeclarationFormModal({ open, onClose, onSave, editData }
         exporter: { id: null, number: '', name: '' }
       }));
     } else {
-      const user = users.find(u => u.id === value);
+      const user = exporters.find(u => u.id === value);
       setIsNewExporter(false);
       setSelectedExporter(value);
       setFormData(prev => ({
         ...prev,
-        exporter: { id: user?.id, number: user?.tin }
+        exporter: { id: user?.id, number: user?.tin, name: user?.name }
       }));
     }
   };
@@ -249,9 +243,9 @@ export default function DeclarationFormModal({ open, onClose, onSave, editData }
                   label="Exporter"
                   onChange={(e) => handleSelectExporter(e.target.value)}
                 >
-                  {users.map(user => (
+                  {exporters.map(user => (
                     <MenuItem key={user.id} value={user.id}>
-                      {user.name || user.email}
+                      {user.name}
                     </MenuItem>
                   ))}
                 </Select>
@@ -263,7 +257,7 @@ export default function DeclarationFormModal({ open, onClose, onSave, editData }
                   label="Exporter Number"
                   value={formData.exporter.number || ''}
                   onChange={handleChange}
-                  disabled={!!users.find(u => u.id === selectedExporter)?.tin}
+                  disabled={!!exporters.find(u => u.id === selectedExporter)?.tin}
                   sx={{ mt: 2 }}
                 />
               )}
@@ -332,18 +326,13 @@ export default function DeclarationFormModal({ open, onClose, onSave, editData }
           </FormControl>
 
           <TextField name="packages.grossWt" label="Gross Weight" type="number" value={formData.packages.grossWt} onChange={handleChange} />
-          <TextField name="packages.grossWtUnit" label="Gross Weight Unit" value={formData.packages.grossWtUnit} onChange={handleChange} />
           <TextField name="packages.grossVol" label="Gross Volume" type="number" value={formData.packages.grossVol} onChange={handleChange} />
-          <TextField name="packages.grossVolUnit" label="Gross Volume Unit" value={formData.packages.grossVolUnit} onChange={handleChange} />
           <TextField name="packages.contents" label="Contents" value={formData.packages.contents} onChange={handleChange} />
-          <TextField name="packages.categoryOfGoods" label="Category of Goods" value={formData.packages.categoryOfGoods} onChange={handleChange} />
 
           <Typography variant="subtitle1" mt={2}>Valuation</Typography>
-          <TextField name="valuation.currency" label="Currency" value={formData.valuation.currency} onChange={handleChange} />
           <TextField name="valuation.netCost" label="Net Cost" type="number" value={formData.valuation.netCost} onChange={handleChange} />
           <TextField name="valuation.netInsurance" label="Net Insurance" type="number" value={formData.valuation.netInsurance} onChange={handleChange} />
           <TextField name="valuation.netFreight" label="Net Freight" type="number" value={formData.valuation.netFreight} onChange={handleChange} />
-          <TextField name="valuation.termsOfDelivery" label="Terms of Delivery" value={formData.valuation.termsOfDelivery} onChange={handleChange} />
 
           <Box mt={3} display="flex" justifyContent="flex-end">
             <Button onClick={onClose}>Cancel</Button>

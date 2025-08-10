@@ -172,7 +172,6 @@ export default function DeclarationPage() {
     { id: 'pkgCount', label: 'Pkg Count' },
     { id: 'grossWt', label: 'Gross Wt' },
     { id: 'netCost', label: 'Net Cost' },
-    { id: 'currency', label: 'Currency' },
     { id: '' },
   ];
 
