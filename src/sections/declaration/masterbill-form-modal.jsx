@@ -46,11 +46,6 @@ export default function MasterBillForm({ open, onClose, onSubmit }) {
       grossVol: '',
       contents: '',
     },
-    valuation: {
-      netCost: '',
-      netInsurance: '',
-      netFreight: '',
-    },
   });
 
   const [mode, setMode] = useState('AIR');
@@ -117,11 +112,6 @@ export default function MasterBillForm({ open, onClose, onSubmit }) {
           grossWt: '',
           grossVol: '',
           contents: '',
-        },
-        valuation: {
-          netCost: '',
-          netInsurance: '',
-          netFreight: '',
         },
       });
     }
@@ -348,27 +338,6 @@ export default function MasterBillForm({ open, onClose, onSubmit }) {
             label="Contents"
             value={formData.packages.contents}
             onChange={(e) => handleChange('packages.contents', e.target.value)}
-          />
-
-          {/* Valuation */}
-          <TextField
-            label="Net Cost"
-            value={formData.valuation.netCost}
-            onChange={(e) => handleChange('valuation.netCost', e.target.value)}
-          />
-          <TextField
-            label="Net Insurance"
-            value={formData.valuation.netInsurance}
-            onChange={(e) =>
-              handleChange('valuation.netInsurance', e.target.value)
-            }
-          />
-          <TextField
-            label="Net Freight"
-            value={formData.valuation.netFreight}
-            onChange={(e) =>
-              handleChange('valuation.netFreight', e.target.value)
-            }
           />
 
           <Box mt={2}>
