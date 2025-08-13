@@ -183,7 +183,7 @@ export default function DeclarationFormModal({ open, onClose, onSave, editData }
               {selectedImporter && (
                 <TextField
                   name="importer.number"
-                  label="Importer Number"
+                  label="Importer TIN"
                   value={formData.importer.number || ''}
                   onChange={handleChange}
                   disabled={!!users.find(u => u.id === selectedImporter)?.tin}
@@ -254,7 +254,7 @@ export default function DeclarationFormModal({ open, onClose, onSave, editData }
               {selectedExporter && (
                 <TextField
                   name="exporter.number"
-                  label="Exporter Number"
+                  label="Exporter TIN"
                   value={formData.exporter.number || ''}
                   onChange={handleChange}
                   disabled={!!exporters.find(u => u.id === selectedExporter)?.tin}
