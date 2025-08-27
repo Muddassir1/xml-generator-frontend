@@ -148,9 +148,17 @@ export default function DeclarationFormModal({ open, onClose, onSave, editData }
     }
   }, [editData]);
 
-  const handleSaveClick = () => {
-    onSave(formData);
+  const handleSaveClick = async () => {
+    await onSave(formData);
     setFormData(initialFormData);
+    if (isNewImporter) {
+      fetchUsers();
+      setIsNewImporter(false); // Reset only here
+    }
+    if (isNewExporter) {
+      fetchExporters();
+      setIsNewExporter(false); // Reset only here
+    }
   };
 
   return (
@@ -307,7 +315,7 @@ export default function DeclarationFormModal({ open, onClose, onSave, editData }
 
 
 
-          <Typography variant="subtitle1" mt={2}>Packages</Typography>
+          <Typography variant="subtitle1" mt={2}>Consignments</Typography>
           <TextField name="packages.pkgCount" label="Package Count" type="number" value={formData.packages.pkgCount} onChange={handleChange} />
           <FormControl fullWidth>
             <InputLabel>Package Type</InputLabel>
@@ -329,7 +337,7 @@ export default function DeclarationFormModal({ open, onClose, onSave, editData }
           <TextField name="packages.grossVol" label="Gross Volume" type="number" value={formData.packages.grossVol} onChange={handleChange} />
           <TextField name="packages.contents" label="Contents" value={formData.packages.contents} onChange={handleChange} />
 
-          <Typography variant="subtitle1" mt={2}>Valuation</Typography>
+          <Typography variant="subtitle1" mt={2}>Financial</Typography>
           <TextField name="valuation.netCost" label="Net Cost" type="number" value={formData.valuation.netCost} onChange={handleChange} />
           <TextField name="valuation.netInsurance" label="Net Insurance" type="number" value={formData.valuation.netInsurance} onChange={handleChange} />
           <TextField name="valuation.netFreight" label="Net Freight" type="number" value={formData.valuation.netFreight} onChange={handleChange} />
