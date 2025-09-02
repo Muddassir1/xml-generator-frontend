@@ -38,8 +38,6 @@ const createEmptyTariff = () => ({
   desc: '',
   qty: '',
   cost: '',
-  insurance: '',
-  freight: '',
   invNumber: '',
   procedure: {
     importerNumber: '',
@@ -51,6 +49,7 @@ export default function TariffFormModal({ open, onClose, onSave, existingTariffs
   const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
+    console.log("opening")
     if (open) {
       const populatedTariffs = existingTariffs.map(t => ({
         ...t,
@@ -198,8 +197,6 @@ export default function TariffFormModal({ open, onClose, onSave, existingTariffs
                     ['desc', 'Description'],
                     ['qty', 'Quantity', 'number'],
                     ['cost', 'Cost', 'number'],
-                    ['insurance', 'Insurance', 'number'],
-                    ['freight', 'Freight', 'number'],
                     ['invNumber', 'Invoice Number'],
                     ['procedure.importerNumber', 'Procedure Importer Number']
                   ].map(([name, label, type]) => (
@@ -277,6 +274,6 @@ TariffFormModal.propTypes = {
   onClose: PropTypes.func.isRequired,
   onSave: PropTypes.func.isRequired,
   existingTariffs: PropTypes.array,
-  availableCodes: PropTypes.array, // 👈 add this
+  availableCodes: PropTypes.array,
 };
 

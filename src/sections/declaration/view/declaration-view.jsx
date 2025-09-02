@@ -129,6 +129,14 @@ export default function DeclarationPage() {
   };
 
   const handleSaveTariffs = async (declarationId, newTariffs) => {
+
+    // Check if total tariff cost is equal to the declaration net cost
+    const totalTariffCost = newTariffs.reduce((sum, tariff) => sum + parseFloat(tariff.cost), 0);
+    const { netCost } = { ...activeTariffDeclaration.valuation };
+    if (totalTariffCost !== parseFloat(netCost)) {
+      alert(`The total cost of the items should be equal to the net cost of the declaration.`);
+      return;
+    }
     try {
       await saveTariffs(declarationId, newTariffs);
     } catch (error) {
@@ -262,19 +270,22 @@ export default function DeclarationPage() {
         onClose={handleCloseModal}
         onSave={handleSaveDeclaration}
         editData={selectedDeclaration}
+        onManageTariffs={() => handleOpenTariffModal(selectedDeclaration)}
       />
 
-      {activeTariffDeclaration && (
-        <TariffFormModal
+      {tariffModalOpen &&
+        (<TariffFormModal
           open={tariffModalOpen}
           onClose={handleCloseTariffModal}
           onSave={(tariffsData) =>
-            handleSaveTariffs(activeTariffDeclaration.id, tariffsData)
+            handleSaveTariffs(activeTariffDeclaration?.id, tariffsData)
           }
-          existingTariffs={activeTariffDeclaration.items}
+          existingTariffs={activeTariffDeclaration?.items || []}
           availableCodes={availableCodes}
         />
-      )}
+        )
+      }
+
       <MasterBillForm
         open={masterBillFormOpen}
         onClose={() => setMasterBillFormOpen(false)}

@@ -48,7 +48,7 @@ const initialFormData = {
   },
 };
 
-export default function DeclarationFormModal({ open, onClose, onSave, editData }) {
+export default function DeclarationFormModal({ open, onClose, onSave, editData, onManageTariffs }) {
   const [formData, setFormData] = useState(initialFormData);
 
   const [selectedImporter, setSelectedImporter] = useState(null);
@@ -342,7 +342,9 @@ export default function DeclarationFormModal({ open, onClose, onSave, editData }
           <TextField name="valuation.netInsurance" label="Net Insurance" type="number" value={formData.valuation.netInsurance} onChange={handleChange} />
           <TextField name="valuation.netFreight" label="Net Freight" type="number" value={formData.valuation.netFreight} onChange={handleChange} />
 
-          <Box mt={3} display="flex" justifyContent="flex-end">
+          {/* <Button variant="contained" onClick={onManageTariffs}>Manage Tariffs</Button> */}
+
+          <Box marginTop={10} display="flex" justifyContent="flex-end">
             <Button onClick={onClose}>Cancel</Button>
             <Button variant="contained" onClick={handleSaveClick} sx={{ ml: 2 }}>
               {editData ? 'Update' : 'Save'}
