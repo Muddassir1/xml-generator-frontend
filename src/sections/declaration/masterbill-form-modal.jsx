@@ -65,12 +65,65 @@ export default function MasterBillForm({ open, onClose, onSubmit }) {
   });
 
   const [mode, setMode] = useState('AIR');
-  const { users, exporters, fetchUsers, fetchExporters } = useDeclarationsApi();
+  const { users, exporters, fetchUsers, fetchExporters, masterBill, fetchMasterBill } = useDeclarationsApi();
 
   useEffect(() => {
-    if (users.length === 0) fetchUsers();
-    if (exporters.length === 0) fetchExporters();
+    if (open) {
+      if (users.length === 0) fetchUsers();
+      if (exporters.length === 0) fetchExporters();
+    }
   }, [users, exporters, fetchUsers, fetchExporters]);
+
+  useEffect(() => {
+    if (open)
+      fetchMasterBill();
+  }, [open])
+
+  useEffect(() => {
+    if (masterBill && open) {
+      setFormData({
+        exporter: masterBill.exporter || { id: '', number: '' },
+        consignment: {
+          departureDate: masterBill.consignment?.departureDate || '',
+          arrivalDate: masterBill.consignment?.arrivalDate || '',
+          exportCountry: masterBill.consignment?.exportCountry || '',
+          importCountry: masterBill.consignment?.importCountry || '',
+          shippingPort: masterBill.consignment?.shippingPort || '',
+          dischargePort: masterBill.consignment?.dischargePort || '',
+          transportMode: masterBill.consignment?.transportMode || '',
+        },
+        shipment: {
+          vesselCode: masterBill.shipment?.vesselCode || '',
+          voyageNo: masterBill.shipment?.voyageNo || '',
+          shippingAgent: masterBill.shipment?.shippingAgent || '',
+          billNumber: masterBill.shipment?.billNumber || '',
+        },
+        packages: {
+          pkgCount: masterBill.packages?.pkgCount || '',
+          pkgType: masterBill.packages?.pkgType || '',
+          grossWt: masterBill.packages?.grossWt || '',
+          grossVol: masterBill.packages?.grossVol || '',
+          contents: masterBill.packages?.contents || '',
+        },
+        containers: masterBill.containers && masterBill.containers.length > 0
+          ? masterBill.containers
+          : [{
+            containerType: '',
+            containerNumber: '',
+            dockReceipt: '',
+            marksNumbers: '',
+            sealNumber: '',
+            volume: '',
+            weight: '',
+          }],
+      });
+
+      // Set the mode based on transport mode
+      if (masterBill.consignment?.transportMode) {
+        setMode(masterBill.consignment.transportMode);
+      }
+    }
+  }, [masterBill, open]);
 
 
   const handleChange = (path, value) => {
@@ -466,20 +519,19 @@ export default function MasterBillForm({ open, onClose, onSubmit }) {
                         label="Container Type"
                         onChange={(e) => handleContainerChange(index, 'containerType', e.target.value)}
                       >
-                        <MenuItem value="1">20FT TRAILER CONTAINER (22TC)</MenuItem>
-                        <MenuItem value="2">45FT BULK CONTAINER (45BK)</MenuItem>
-                        <MenuItem value="3">20FT REFRIGERATED CONTAINER (20RF)</MenuItem>
-                        <MenuItem value="4">20FT FLAT RACK PLATFORM (20FF)</MenuItem>
-                        <MenuItem value="5">20FT TANK CONTAINER (20TK)</MenuItem>
-                        <MenuItem value="6">20FT GENERAL PURPOSE CONTAINER (20CT)</MenuItem>
-                        <MenuItem value="7">45FT REEFER HIGHCUBE CONTAINER (45RF)</MenuItem>
-                        <MenuItem value="8">40FT TANK CONTAINER (40TK)</MenuItem>
-                        <MenuItem value="9">40FT REFERIGERATED CONTAINER (40RF)</MenuItem>
-                        <MenuItem value="10">40FT FLAT RACK PLATFORM (40FF)</MenuItem>
-                        <MenuItem value="11">40FT HIGH CUBE CONTAINER (40HC)</MenuItem>
-                        <MenuItem value="12">45FT HIGH CUBE CONTAINER (45HC)</MenuItem>
-                        <MenuItem value="13">20FT REFRIGERATED CONTAINER (20PA)</MenuItem>
-
+                        <MenuItem value="22TC">20FT TRAILER CONTAINER (22TC)</MenuItem>
+                        <MenuItem value="45BK">45FT BULK CONTAINER (45BK)</MenuItem>
+                        <MenuItem value="20RF">20FT REFRIGERATED CONTAINER (20RF)</MenuItem>
+                        <MenuItem value="20FF">20FT FLAT RACK PLATFORM (20FF)</MenuItem>
+                        <MenuItem value="20TK">20FT TANK CONTAINER (20TK)</MenuItem>
+                        <MenuItem value="20CT">20FT GENERAL PURPOSE CONTAINER (20CT)</MenuItem>
+                        <MenuItem value="45RF">45FT REEFER HIGHCUBE CONTAINER (45RF)</MenuItem>
+                        <MenuItem value="40TK">40FT TANK CONTAINER (40TK)</MenuItem>
+                        <MenuItem value="40RF">40FT REFERIGERATED CONTAINER (40RF)</MenuItem>
+                        <MenuItem value="40FF">40FT FLAT RACK PLATFORM (40FF)</MenuItem>
+                        <MenuItem value="40HC">40FT HIGH CUBE CONTAINER (40HC)</MenuItem>
+                        <MenuItem value="45HC">45FT HIGH CUBE CONTAINER (45HC)</MenuItem>
+                        <MenuItem value="20PA">20FT REFRIGERATED CONTAINER (20PA)</MenuItem>
                       </Select>
                     </FormControl>
 

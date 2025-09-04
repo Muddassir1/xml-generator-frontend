@@ -105,7 +105,6 @@ export default function TariffFormModal({ open, onClose, onSave, existingTariffs
   const handleSaveClick = () => {
     const cleaned = tariffs.map(({ key, isNew, isEditing, ...rest }) => rest);
     onSave(cleaned);
-    onClose();
   };
 
   const handleDirectChange = (index, name, value) => {

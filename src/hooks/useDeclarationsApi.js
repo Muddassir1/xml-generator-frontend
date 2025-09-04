@@ -7,6 +7,7 @@ export default function useDeclarationsApi() {
   const [declarations, setDeclarations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [availableCodes, setAvailableCodes] = useState([]);
+  const [masterBill, setMasterBill] = useState(null);
   const [users, setUsers] = useState([]);
   const [exporters, setExporters] = useState([]);
 
@@ -101,6 +102,16 @@ export default function useDeclarationsApi() {
     setDeclarations((prev) => prev.filter((d) => d.id !== id));
   };
 
+   const fetchMasterBill = async () => {
+    try {
+      const res = await fetch(`${API_URL}/master-bill`);
+      const data = await res.json();
+      setMasterBill(data);
+    } catch (err) {
+      console.error('Failed to load master bill:', err);
+    }
+  };
+
   const generateXml = async (data) => {
     const res = await fetch(`${API_URL}/generate-xml`, {
       method: 'POST',
@@ -123,12 +134,14 @@ export default function useDeclarationsApi() {
     availableCodes,
     users,
     exporters,
+    masterBill,
     fetchUsers,
     fetchExporters,
     fetchDeclarations,
     saveDeclaration,
     saveTariffs,
     deleteDeclaration,
+    fetchMasterBill,
     generateXml,
   };
 }

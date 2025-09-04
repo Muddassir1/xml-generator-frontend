@@ -139,6 +139,7 @@ export default function DeclarationPage() {
     }
     try {
       await saveTariffs(declarationId, newTariffs);
+      handleCloseTariffModal()
     } catch (error) {
       console.error("Error saving tariffs:", error);
       alert('Error saving tariffs.');
