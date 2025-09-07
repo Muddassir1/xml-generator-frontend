@@ -18,12 +18,28 @@ import axios from 'axios';
 import { useEffect, useState } from 'react';
 import { airlines } from 'src/_mock/airlines';
 import { packageTypes } from 'src/_mock/package_types';
-import { ports } from 'src/_mock/ports';
+import { ports } from 'src/_mock/ports_modified';
 import { shippingAgents } from 'src/_mock/shipping_agents';
 import { vessels } from 'src/_mock/vessels';
 import useDeclarationsApi from 'src/hooks/useDeclarationsApi';
 import Iconify from 'src/components/iconify';
 
+
+const autoSelectPortFromFlight = (flightRoute, portsList) => {
+  if (!flightRoute) return null;
+
+  // Extract the origin port code from route like "KX 3601 - KIN -> GCM"
+  const match = flightRoute.match(/- (\w+) ->/);
+  console.log(match)
+  if (!match) return null;
+
+  const originCode = match[1];
+
+  // Find the port with matching extractedCode
+  const matchingPort = portsList.find(port => port.extractedCode === originCode);
+  console.log(matchingPort)
+  return matchingPort || null;
+};
 
 export default function MasterBillForm({ open, onClose, onSubmit }) {
   const [formData, setFormData] = useState({
@@ -51,21 +67,12 @@ export default function MasterBillForm({ open, onClose, onSubmit }) {
       grossVol: '',
       contents: '',
     },
-    containers: [
-      {
-        containerType: '',
-        containerNumber: '',
-        dockReceipt: '',
-        marksNumbers: '',
-        sealNumber: '',
-        volume: '',
-        weight: '',
-      }
-    ],
+    containers: [], // Start with empty array instead of one empty container
   });
 
   const [mode, setMode] = useState('AIR');
   const { users, exporters, fetchUsers, fetchExporters, masterBill, fetchMasterBill } = useDeclarationsApi();
+  const [selectedFlightRoute, setSelectedFlightRoute] = useState('');
 
   useEffect(() => {
     if (open) {
@@ -78,6 +85,11 @@ export default function MasterBillForm({ open, onClose, onSubmit }) {
     if (open)
       fetchMasterBill();
   }, [open])
+
+  useEffect(() => {
+    setSelectedFlightRoute('');
+    handleChange('shipment.voyageNo', '');
+  }, [formData.shipment.vesselCode]);
 
   useEffect(() => {
     if (masterBill && open) {
@@ -105,17 +117,14 @@ export default function MasterBillForm({ open, onClose, onSubmit }) {
           grossVol: masterBill.packages?.grossVol || '',
           contents: masterBill.packages?.contents || '',
         },
-        containers: masterBill.containers && masterBill.containers.length > 0
+        // Only show containers if there's existing data with actual content
+        containers: masterBill.containers && masterBill.containers.length > 0 &&
+          masterBill.containers.some(container =>
+            container.containerType || container.containerNumber || container.dockReceipt ||
+            container.marksNumbers || container.sealNumber || container.volume || container.weight
+          )
           ? masterBill.containers
-          : [{
-            containerType: '',
-            containerNumber: '',
-            dockReceipt: '',
-            marksNumbers: '',
-            sealNumber: '',
-            volume: '',
-            weight: '',
-          }],
+          : [], // Start with empty array if no meaningful container data
       });
 
       // Set the mode based on transport mode
@@ -190,18 +199,7 @@ export default function MasterBillForm({ open, onClose, onSubmit }) {
           grossVol: '',
           contents: '',
         },
-        containers: [
-          {
-            containerType: '',
-            containerNumber: '',
-            dockReceipt: '',
-            marksNumbers: '',
-            sealNumber: '',
-            volume: '',
-            weight: '',
-          }
-        ],
-
+        containers: [], // Reset to empty array instead of one empty container
       });
     }
   }, [open]);
@@ -279,6 +277,16 @@ export default function MasterBillForm({ open, onClose, onSubmit }) {
             disabled={!!users.find((u) => u.id === formData.importer.id)?.tin}
           /> */}
 
+
+          {mode === "SEA" && (
+            <TextField
+              label="Export Country"
+              disabled
+              value="United States of America (USA)"
+            />
+          )}
+
+
           {/* Exporter */}
           <FormControl fullWidth>
             <InputLabel>Exporter</InputLabel>
@@ -322,9 +330,61 @@ export default function MasterBillForm({ open, onClose, onSubmit }) {
           />
 
 
+          {/* Shipment */}
+          <FormControl fullWidth>
+            <InputLabel>{mode === "AIR" ? "Airline" : "Vessel Name"}</InputLabel>
+            <Select
+              value={formData.shipment.vesselCode}
+              label={mode === "AIR" ? "Airline" : "Vessel Name"}
+              onChange={(e) => { handleChange('shipment.vesselCode', e.target.value); handleChange('shipment.voyageNo', '') }}
+            >
+              {(mode === "AIR" ? airlines : vessels).map((u) => (
+                <MenuItem key={u.code} value={u.code}>
+                  {mode === "AIR" ? u.name : u.description}
+                </MenuItem>
+              ))}
+
+            </Select>
+          </FormControl>
+
+          {mode === "AIR" && (
+            <FormControl fullWidth>
+              <InputLabel>Flight Number</InputLabel>
+              <Select
+                value={selectedFlightRoute}
+                label="Select Flight"
+                onChange={(e) => {
+                  const selectedRoute = e.target.value;
+                  setSelectedFlightRoute(selectedRoute); // Store the full route in separate state
+
+                  // Extract flight number from route to store in formData (for backend)
+                  const flightNumberMatch = selectedRoute.match(/(\w+\s+\d+)/);
+                  const flightNumber = flightNumberMatch ? flightNumberMatch[1].split(' ')[1] : '';
+
+                  handleChange('shipment.voyageNo', flightNumber); // Store just the number for backend
+
+                  // Auto-select overseas port for AIR mode
+                  if (mode === "AIR") {
+                    const autoSelectedPort = autoSelectPortFromFlight(selectedRoute, ports);
+                    if (autoSelectedPort) {
+                      handleChange('consignment.shippingPort', autoSelectedPort.code);
+                    }
+                  }
+                }}
+              >
+                {airlines.find(item => item.code === formData.shipment.vesselCode)?.flights.map((u) => (
+                  <MenuItem key={u.route} value={u.route}>
+                    {u.route}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          )}
+
           <FormControl fullWidth>
             <Autocomplete
               options={ports}
+              disabled={mode === "AIR"}
               filterOptions={(options, state) => {
                 const filtered = options.filter((option) => {
                   if (mode === 'AIR') {
@@ -359,58 +419,26 @@ export default function MasterBillForm({ open, onClose, onSubmit }) {
               )}
               disableClearable
             />
-
-
           </FormControl>
 
-          {/* Shipment */}
-          <FormControl fullWidth>
-            <InputLabel>{mode === "AIR" ? "Airline" : "Vessel Name"}</InputLabel>
-            <Select
-              value={formData.shipment.vesselCode}
-              label={mode === "AIR" ? "Airline" : "Vessel Name"}
-              onChange={(e) => { handleChange('shipment.vesselCode', e.target.value); handleChange('shipment.voyageNo', '') }}
-            >
-              {(mode === "AIR" ? airlines : vessels).map((u) => (
-                <MenuItem key={u.code} value={u.code}>
-                  {mode === "AIR" ? u.name : u.description}
-                </MenuItem>
-              ))}
-
-            </Select>
-          </FormControl>
-
+          <TextField
+            label="Cayman Port"
+            disabled
+            value={mode === "AIR" ? "Grand Cayman, GC (GCM)" : "Georgetown, Grand Cayman, GC (GEC)"}
+          />
           {mode === "AIR" && (
-            <FormControl fullWidth>
-              <InputLabel>Flight Number</InputLabel>
-              <Select
-                value={formData.shipment.voyageNo}
-                label="Select Flight"
-                onChange={(e) => { handleChange('shipment.voyageNo', e.target.value) }}
-              >
-                {airlines.find(item => item.code === formData.shipment.vesselCode)?.flights.map((u) => (
-                  <MenuItem key={u.route} value={u.number}>
-                    {u.route}
-                  </MenuItem>
-                ))}
-
-              </Select>
-            </FormControl>
-          )}
-
-          {mode === "SEA" && (
             <TextField
-              label="Voyage No"
-              value={formData.shipment.voyageNo}
-              onChange={(e) => handleChange('shipment.voyageNo', e.target.value)}
+              label="Export Country"
+              disabled
+              value="United States of America (USA)"
             />
           )}
 
           <FormControl fullWidth>
-            <InputLabel>Shipping Agent</InputLabel>
+            <InputLabel>Shipping Company</InputLabel>
             <Select
               value={formData.shipment.shippingAgent}
-              label="Shipping Agent"
+              label="Shipping Company"
               onChange={(e) => handleChange('shipment.shippingAgent', e.target.value)}
             >
               {shippingAgents.map((u) => (
@@ -421,9 +449,39 @@ export default function MasterBillForm({ open, onClose, onSubmit }) {
             </Select>
           </FormControl>
 
+          {mode === "SEA" && (
+            <FormControl fullWidth>
+              <InputLabel>Vessel Name</InputLabel>
+              <Select
+                value={formData.shipment.vesselCode}
+                label="Vessel Name"
+                onChange={(e) => { handleChange('shipment.vesselCode', e.target.value); handleChange('shipment.voyageNo', '') }}
+              >
+                {vessels.map((u) => (
+                  <MenuItem key={u.code} value={u.code}>
+                    {u.description}
+                  </MenuItem>
+                ))}
+
+              </Select>
+            </FormControl>
+          )}
+
+
+          {mode === "SEA" && (
+            <TextField
+              label="Voyage Number"
+              value={formData.shipment.voyageNo}
+              onChange={(e) => handleChange('shipment.voyageNo', e.target.value)}
+            />
+          )}
+
+
+
           <TextField
             label="Bill Number"
             value={formData.shipment.billNumber}
+            placeholder='Bill of lading or air waybill number'
             onChange={(e) => handleChange('shipment.billNumber', e.target.value)}
           />
 
@@ -492,13 +550,27 @@ export default function MasterBillForm({ open, onClose, onSubmit }) {
               </Button>
             </Box>
 
-            {formData.containers.map((container, index) => (
-              <Box key={index} sx={{ mb: 3, p: 2, border: '1px solid #e0e0e0', borderRadius: 1 }}>
-                <Box display="flex" alignItems="center" justifyContent="between" sx={{ mb: 2 }}>
-                  <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>
-                    Container {index + 1}
-                  </Typography>
-                  {formData.containers.length > 1 && (
+            {/* Only show containers if there are any in the array */}
+            {formData.containers.length === 0 ? (
+              <Box sx={{
+                p: 3,
+                textAlign: 'center',
+                color: 'text.secondary',
+                border: '1px dashed #e0e0e0',
+                borderRadius: 1,
+                backgroundColor: '#fafafa'
+              }}>
+                <Typography variant="body2">
+                  No containers added yet.
+                </Typography>
+              </Box>
+            ) : (
+              formData.containers.map((container, index) => (
+                <Box key={index} sx={{ mb: 3, p: 2, border: '1px solid #e0e0e0', borderRadius: 1 }}>
+                  <Box display="flex" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
+                    <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>
+                      Container {index + 1}
+                    </Typography>
                     <IconButton
                       onClick={() => removeContainer(index)}
                       color="error"
@@ -506,85 +578,85 @@ export default function MasterBillForm({ open, onClose, onSubmit }) {
                     >
                       <Iconify icon="eva:trash-2-outline" />
                     </IconButton>
-                  )}
+                  </Box>
+
+                  <Box display="flex" flexDirection="column" gap={2}>
+                    {/* First Row */}
+                    <Box display="flex" gap={2}>
+                      <FormControl sx={{ flex: 1 }}>
+                        <InputLabel>Container Type</InputLabel>
+                        <Select
+                          value={container.containerType}
+                          label="Container Type"
+                          onChange={(e) => handleContainerChange(index, 'containerType', e.target.value)}
+                        >
+                          <MenuItem value="22TC">20FT TRAILER CONTAINER (22TC)</MenuItem>
+                          <MenuItem value="45BK">45FT BULK CONTAINER (45BK)</MenuItem>
+                          <MenuItem value="20RF">20FT REFRIGERATED CONTAINER (20RF)</MenuItem>
+                          <MenuItem value="20FF">20FT FLAT RACK PLATFORM (20FF)</MenuItem>
+                          <MenuItem value="20TK">20FT TANK CONTAINER (20TK)</MenuItem>
+                          <MenuItem value="20CT">20FT GENERAL PURPOSE CONTAINER (20CT)</MenuItem>
+                          <MenuItem value="45RF">45FT REEFER HIGHCUBE CONTAINER (45RF)</MenuItem>
+                          <MenuItem value="40TK">40FT TANK CONTAINER (40TK)</MenuItem>
+                          <MenuItem value="40RF">40FT REFERIGERATED CONTAINER (40RF)</MenuItem>
+                          <MenuItem value="40FF">40FT FLAT RACK PLATFORM (40FF)</MenuItem>
+                          <MenuItem value="40HC">40FT HIGH CUBE CONTAINER (40HC)</MenuItem>
+                          <MenuItem value="45HC">45FT HIGH CUBE CONTAINER (45HC)</MenuItem>
+                          <MenuItem value="20PA">20FT REFRIGERATED CONTAINER (20PA)</MenuItem>
+                        </Select>
+                      </FormControl>
+
+                      <TextField
+                        label="Container Number"
+                        value={container.containerNumber}
+                        onChange={(e) => handleContainerChange(index, 'containerNumber', e.target.value)}
+                        sx={{ flex: 1 }}
+                      />
+                    </Box>
+
+                    {/* Second Row */}
+                    <Box display="flex" gap={2}>
+                      <TextField
+                        label="Dock Receipt"
+                        value={container.dockReceipt}
+                        onChange={(e) => handleContainerChange(index, 'dockReceipt', e.target.value)}
+                        sx={{ flex: 1 }}
+                      />
+                      <TextField
+                        label="Marks and Numbers"
+                        value={container.marksNumbers}
+                        onChange={(e) => handleContainerChange(index, 'marksNumbers', e.target.value)}
+                        sx={{ flex: 1 }}
+                      />
+
+                      <TextField
+                        label="Seal Number"
+                        value={container.sealNumber}
+                        onChange={(e) => handleContainerChange(index, 'sealNumber', e.target.value)}
+                        sx={{ flex: 1 }}
+                      />
+                    </Box>
+
+                    {/* Third Row */}
+                    <Box display="flex" gap={2}>
+                      <TextField
+                        label="Volume"
+                        value={container.volume}
+                        onChange={(e) => handleContainerChange(index, 'volume', e.target.value)}
+                        sx={{ flex: 1 }}
+                      />
+                      <TextField
+                        label="Weight"
+                        value={container.weight}
+                        onChange={(e) => handleContainerChange(index, 'weight', e.target.value)}
+                        sx={{ flex: 1 }}
+                      />
+                      <Box sx={{ flex: 1 }} /> {/* Empty space for alignment */}
+                    </Box>
+                  </Box>
                 </Box>
-
-                <Box display="flex" flexDirection="column" gap={2}>
-                  {/* First Row */}
-                  <Box display="flex" gap={2}>
-                    <FormControl sx={{ flex: 1 }}>
-                      <InputLabel>Container Type</InputLabel>
-                      <Select
-                        value={container.containerType}
-                        label="Container Type"
-                        onChange={(e) => handleContainerChange(index, 'containerType', e.target.value)}
-                      >
-                        <MenuItem value="22TC">20FT TRAILER CONTAINER (22TC)</MenuItem>
-                        <MenuItem value="45BK">45FT BULK CONTAINER (45BK)</MenuItem>
-                        <MenuItem value="20RF">20FT REFRIGERATED CONTAINER (20RF)</MenuItem>
-                        <MenuItem value="20FF">20FT FLAT RACK PLATFORM (20FF)</MenuItem>
-                        <MenuItem value="20TK">20FT TANK CONTAINER (20TK)</MenuItem>
-                        <MenuItem value="20CT">20FT GENERAL PURPOSE CONTAINER (20CT)</MenuItem>
-                        <MenuItem value="45RF">45FT REEFER HIGHCUBE CONTAINER (45RF)</MenuItem>
-                        <MenuItem value="40TK">40FT TANK CONTAINER (40TK)</MenuItem>
-                        <MenuItem value="40RF">40FT REFERIGERATED CONTAINER (40RF)</MenuItem>
-                        <MenuItem value="40FF">40FT FLAT RACK PLATFORM (40FF)</MenuItem>
-                        <MenuItem value="40HC">40FT HIGH CUBE CONTAINER (40HC)</MenuItem>
-                        <MenuItem value="45HC">45FT HIGH CUBE CONTAINER (45HC)</MenuItem>
-                        <MenuItem value="20PA">20FT REFRIGERATED CONTAINER (20PA)</MenuItem>
-                      </Select>
-                    </FormControl>
-
-                    <TextField
-                      label="Container Number"
-                      value={container.containerNumber}
-                      onChange={(e) => handleContainerChange(index, 'containerNumber', e.target.value)}
-                      sx={{ flex: 1 }}
-                    />
-                  </Box>
-
-                  {/* Second Row */}
-                  <Box display="flex" gap={2}>
-                    <TextField
-                      label="Dock Receipt"
-                      value={container.dockReceipt}
-                      onChange={(e) => handleContainerChange(index, 'dockReceipt', e.target.value)}
-                      sx={{ flex: 1 }}
-                    />
-                    <TextField
-                      label="Marks and Numbers"
-                      value={container.marksNumbers}
-                      onChange={(e) => handleContainerChange(index, 'marksNumbers', e.target.value)}
-                      sx={{ flex: 1 }}
-                    />
-
-                    <TextField
-                      label="Seal Number"
-                      value={container.sealNumber}
-                      onChange={(e) => handleContainerChange(index, 'sealNumber', e.target.value)}
-                      sx={{ flex: 1 }}
-                    />
-                  </Box>
-
-                  {/* Third Row */}
-                  <Box display="flex" gap={2}>
-                    <TextField
-                      label="Volume"
-                      value={container.volume}
-                      onChange={(e) => handleContainerChange(index, 'volume', e.target.value)}
-                      sx={{ flex: 1 }}
-                    />
-                    <TextField
-                      label="Weight"
-                      value={container.weight}
-                      onChange={(e) => handleContainerChange(index, 'weight', e.target.value)}
-                      sx={{ flex: 1 }}
-                    />
-                    <Box sx={{ flex: 1 }} /> {/* Empty space for alignment */}
-                  </Box>
-                </Box>
-              </Box>
-            ))}
+              ))
+            )}
           </Box>
           <Box mt={2}>
             <Button variant="contained" onClick={handleSubmit}>
