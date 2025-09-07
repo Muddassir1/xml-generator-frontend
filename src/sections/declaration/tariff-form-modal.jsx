@@ -214,7 +214,7 @@ export default function TariffFormModal({ open, onClose, onSave, existingTariffs
                           value={availableCodes.find(opt => opt.code === tariff.code) || null}
                           onChange={(e, newValue) => {
                             handleDirectChange(index, 'code', newValue ? newValue.code : '');
-                            handleDirectChange(index, 'desc', newValue ? newValue.description : '');
+                            // handleDirectChange(index, 'desc', newValue ? newValue.description : '');
                           }}
                           renderInput={(params) => (
                             <TextField {...params} label="Tariff Code" variant="outlined" fullWidth />
