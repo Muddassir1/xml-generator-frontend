@@ -131,6 +131,9 @@ export default function MasterBillForm({ open, onClose, onSubmit }) {
       if (masterBill.consignment?.transportMode) {
         setMode(masterBill.consignment.transportMode);
       }
+      if (mode === "AIR" && masterBill.shipment.voyageNo) {
+        setSelectedFlightRoute(masterBill.shipment.voyageNo)
+      }
     }
   }, [masterBill, open]);
 
@@ -373,7 +376,7 @@ export default function MasterBillForm({ open, onClose, onSubmit }) {
                 }}
               >
                 {airlines.find(item => item.code === formData.shipment.vesselCode)?.flights.map((u) => (
-                  <MenuItem key={u.route} value={u.route}>
+                  <MenuItem key={u.route} value={u.number}>
                     {u.route}
                   </MenuItem>
                 ))}
@@ -475,7 +478,6 @@ export default function MasterBillForm({ open, onClose, onSubmit }) {
               onChange={(e) => handleChange('shipment.voyageNo', e.target.value)}
             />
           )}
-
 
 
           <TextField
