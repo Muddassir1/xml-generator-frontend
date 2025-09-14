@@ -26,6 +26,7 @@ import Iconify from 'src/components/iconify';
 
 
 const autoSelectPortFromFlight = (flightRoute, portsList) => {
+
   if (!flightRoute) return null;
 
   // Extract the origin port code from route like "KX 3601 - KIN -> GCM"
@@ -76,10 +77,10 @@ export default function MasterBillForm({ open, onClose, onSubmit }) {
 
   useEffect(() => {
     if (open) {
-      if (users.length === 0) fetchUsers();
-      if (exporters.length === 0) fetchExporters();
+      fetchUsers();
+      fetchExporters();
     }
-  }, [users, exporters, fetchUsers, fetchExporters]);
+  }, [open]);
 
   useEffect(() => {
     if (open)
@@ -131,7 +132,7 @@ export default function MasterBillForm({ open, onClose, onSubmit }) {
       if (masterBill.consignment?.transportMode) {
         setMode(masterBill.consignment.transportMode);
       }
-      if (mode === "AIR" && masterBill.shipment.voyageNo) {
+      if (mode === "AIR" && masterBill.shipment?.voyageNo) {
         setSelectedFlightRoute(masterBill.shipment.voyageNo)
       }
     }
@@ -359,11 +360,10 @@ export default function MasterBillForm({ open, onClose, onSubmit }) {
                 onChange={(e) => {
                   const selectedRoute = e.target.value;
                   setSelectedFlightRoute(selectedRoute); // Store the full route in separate state
-
+                  
                   // Extract flight number from route to store in formData (for backend)
                   const flightNumberMatch = selectedRoute.match(/(\w+\s+\d+)/);
                   const flightNumber = flightNumberMatch ? flightNumberMatch[1].split(' ')[1] : '';
-
                   handleChange('shipment.voyageNo', flightNumber); // Store just the number for backend
 
                   // Auto-select overseas port for AIR mode
@@ -376,7 +376,7 @@ export default function MasterBillForm({ open, onClose, onSubmit }) {
                 }}
               >
                 {airlines.find(item => item.code === formData.shipment.vesselCode)?.flights.map((u) => (
-                  <MenuItem key={u.route} value={u.number}>
+                  <MenuItem key={u.route} value={u.route}>
                     {u.route}
                   </MenuItem>
                 ))}
@@ -662,7 +662,7 @@ export default function MasterBillForm({ open, onClose, onSubmit }) {
           </Box>
           <Box mt={2}>
             <Button variant="contained" onClick={handleSubmit}>
-              Submit
+              Save & Submit
             </Button>
           </Box>
         </Box>

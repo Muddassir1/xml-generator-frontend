@@ -7,7 +7,6 @@ import Modal from '@mui/material/Modal';
 import Button from '@mui/material/Button';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
-import Stack from '@mui/material/Stack';
 import IconButton from '@mui/material/IconButton';
 import Accordion from '@mui/material/Accordion';
 import AccordionSummary from '@mui/material/AccordionSummary';
@@ -197,7 +196,7 @@ export default function TariffFormModal({ open, onClose, onSave, existingTariffs
                     ['qty', 'Quantity', 'number'],
                     ['cost', 'Cost', 'number'],
                     ['invNumber', 'Invoice Number'],
-                    ['procedure.importerNumber', 'Procedure Importer Number']
+                    // ['procedure.importerNumber', 'Procedure Importer Number']
                   ].map(([name, label, type]) => (
                     <Grid item xs={12} sm={6} key={name}>
                       {type === 'select' ? (
@@ -245,6 +244,14 @@ export default function TariffFormModal({ open, onClose, onSave, existingTariffs
                       )}
                     </Grid>
                   ))}
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      label="Procedure"
+                      value="Regular Import"
+                      disabled
+                      fullWidth
+                    />
+                  </Grid>
                 </Grid>
               </Box>
             </AccordionDetails>

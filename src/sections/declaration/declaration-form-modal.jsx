@@ -14,6 +14,7 @@ import Select from '@mui/material/Select';
 import axios from 'axios';
 import { packageTypes } from 'src/_mock/package_types';
 import useDeclarationsApi from 'src/hooks/useDeclarationsApi';
+import { Autocomplete } from '@mui/material';
 
 
 const style = {
@@ -33,18 +34,18 @@ const style = {
 const initialFormData = {
   importer: { id: '', number: '' },
   exporter: { id: '', number: '' },
-  billNumber: '2',
+  billNumber: '',
   packages: {
-    pkgCount: '2',
+    pkgCount: '',
     pkgType: '',
-    grossWt: '2',
-    grossVol: '2',
-    contents: '2',
+    grossWt: '',
+    grossVol: '',
+    contents: '',
   },
   valuation: {
-    netCost: '2',
-    netInsurance: '2',
-    netFreight: '2',
+    netCost: '',
+    netInsurance: '',
+    netFreight: '',
   },
 };
 
@@ -58,11 +59,14 @@ export default function DeclarationFormModal({ open, onClose, onSave, editData, 
   const { users, exporters, fetchUsers, fetchExporters } = useDeclarationsApi();
 
   useEffect(() => {
-    if (users.length === 0) fetchUsers();
-    if (exporters.length === 0) fetchExporters();
-  }, [users, exporters, fetchUsers, fetchExporters]);
+    if (open) {
+      fetchUsers();
+      fetchExporters();
+    }
+  }, [open]);
 
   const handleSelectImporter = (value) => {
+
     if (value === 'new') {
       setIsNewImporter(true);
       setSelectedImporter(null);
@@ -71,7 +75,7 @@ export default function DeclarationFormModal({ open, onClose, onSave, editData, 
         importer: { id: null, number: '', name: '' }
       }));
     } else {
-      const user = users.find(u => u.id === value);
+      const user = users.find(u => u.id === value.id);
       setIsNewImporter(false);
       setSelectedImporter(value);
       setFormData(prev => ({
@@ -141,7 +145,7 @@ export default function DeclarationFormModal({ open, onClose, onSave, editData, 
 
   useEffect(() => {
     if (editData?.importer?.id) {
-      setSelectedImporter(editData.importer.id);
+      setSelectedImporter(editData.importer);
     }
     if (editData?.exporter?.id) {
       setSelectedExporter(editData.exporter.id);
@@ -174,18 +178,19 @@ export default function DeclarationFormModal({ open, onClose, onSave, editData, 
           {!isNewImporter ? (
             <>
               <FormControl fullWidth>
-                <InputLabel>Importer</InputLabel>
-                <Select
-                  value={selectedImporter || ''}
-                  label="Importer"
-                  onChange={(e) => handleSelectImporter(e.target.value)}
-                >
-                  {users.map(user => (
-                    <MenuItem key={user.id} value={user.id}>
-                      {user.name || user.email}
-                    </MenuItem>
-                  ))}
-                </Select>
+                <Autocomplete
+                  value={selectedImporter || null}
+                  onChange={(e, value) => handleSelectImporter(value)}
+                  options={users}
+                  filterOptions={(options, state) =>
+                    options.filter(
+                      (option) =>
+                        option.name.toLowerCase().includes(state.inputValue.toLowerCase())
+                    ).slice(0, 10)
+                  }
+                  getOptionLabel={(option) => option.name || ''}
+                  renderInput={(params) => <TextField {...params} label="Importer" />}
+                />
               </FormControl>
 
               {selectedImporter && (
@@ -251,7 +256,7 @@ export default function DeclarationFormModal({ open, onClose, onSave, editData, 
                   label="Exporter"
                   onChange={(e) => handleSelectExporter(e.target.value)}
                 >
-                  {exporters.map(user => (
+                  {exporters.filter(exporter => exporter.uid === selectedImporter?.id).map(user => (
                     <MenuItem key={user.id} value={user.id}>
                       {user.name}
                     </MenuItem>
