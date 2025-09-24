@@ -72,13 +72,20 @@ export default function MasterBillForm({ open, onClose, onSubmit }) {
   });
 
   const [mode, setMode] = useState('AIR');
-  const { users, exporters, fetchUsers, fetchExporters, masterBill, fetchMasterBill } = useDeclarationsApi();
+  const { users, fetchUsers, masterBill, fetchMasterBill } = useDeclarationsApi();
   const [selectedFlightRoute, setSelectedFlightRoute] = useState('');
+  const exporters = [
+    {
+      "id": "866c77f1-c053-4b9b-8eeb-757da778500a",
+      "name": "Novotrans",
+      "tin": "21735993",
+    },
+  ]
 
   useEffect(() => {
     if (open) {
       fetchUsers();
-      fetchExporters();
+      // fetchExporters();
     }
   }, [open]);
 
@@ -360,7 +367,7 @@ export default function MasterBillForm({ open, onClose, onSubmit }) {
                 onChange={(e) => {
                   const selectedRoute = e.target.value;
                   setSelectedFlightRoute(selectedRoute); // Store the full route in separate state
-                  
+
                   // Extract flight number from route to store in formData (for backend)
                   const flightNumberMatch = selectedRoute.match(/(\w+\s+\d+)/);
                   const flightNumber = flightNumberMatch ? flightNumberMatch[1].split(' ')[1] : '';
