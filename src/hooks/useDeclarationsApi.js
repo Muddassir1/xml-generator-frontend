@@ -1,5 +1,5 @@
 // src/hooks/useDeclarationsApi.js
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 
 const API_URL = import.meta.env.VITE_BACKEND_URL;
 
@@ -11,10 +11,13 @@ export default function useDeclarationsApi() {
   const [users, setUsers] = useState([]);
   const [exporters, setExporters] = useState([]);
 
-  const fetchDeclarations = async () => {
+  const fetchDeclarations = useCallback(async (transportMode = null) => {
     try {
       setLoading(true);
-      const res = await fetch(`${API_URL}/declarations`);
+      const url = transportMode 
+        ? `${API_URL}/declarations?transportMode=${transportMode}`
+        : `${API_URL}/declarations`;
+      const res = await fetch(url);
       if (!res.ok) throw new Error('Failed to fetch declarations');
       const data = await res.json();
       setDeclarations(data);
@@ -23,9 +26,9 @@ export default function useDeclarationsApi() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const fetchTariffCodes = async () => {
+  const fetchTariffCodes = useCallback(async () => {
     try {
       const res = await fetch(`${API_URL}/tariffs`);
       const data = await res.json();
@@ -33,9 +36,9 @@ export default function useDeclarationsApi() {
     } catch (err) {
       console.error('Failed to load tariff codes:', err);
     }
-  };
+  }, []);
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
       const res = await fetch(`${API_URL}/users`);
       const data = await res.json();
@@ -43,9 +46,9 @@ export default function useDeclarationsApi() {
     } catch (err) {
       console.error('Failed to load users:', err);
     }
-  };
+  }, []);
 
-  const fetchExporters = async () => {
+  const fetchExporters = useCallback(async () => {
     try {
       const res = await fetch(`${API_URL}/exporters`);
       const data = await res.json();
@@ -53,9 +56,9 @@ export default function useDeclarationsApi() {
     } catch (err) {
       console.error('Failed to load exporters:', err);
     }
-  };
+  }, []);
 
-  const saveDeclaration = async (declaration) => {
+  const saveDeclaration = useCallback(async (declaration) => {
     const isEditing = !!declaration.id;
     const url = isEditing
       ? `${API_URL}/declarations/${declaration.id}`
@@ -76,9 +79,9 @@ export default function useDeclarationsApi() {
         : [...prev, saved]
     );
     return saved;
-  };
+  }, []);
 
-  const saveTariffs = async (declarationId, tariffs) => {
+  const saveTariffs = useCallback(async (declarationId, tariffs) => {
     const res = await fetch(`${API_URL}/declarations/${declarationId}/tariffs`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -91,18 +94,31 @@ export default function useDeclarationsApi() {
       prev.map((d) => (d.id === updated.id ? updated : d))
     );
     return updated;
-  };
+  }, []);
 
-  const deleteDeclaration = async (id) => {
+  const deleteDeclaration = useCallback(async (id) => {
     const res = await fetch(`${API_URL}/declarations/${id}`, {
       method: 'DELETE',
     });
     if (!res.ok) throw new Error('Failed to delete declaration');
 
     setDeclarations((prev) => prev.filter((d) => d.id !== id));
-  };
+  }, []);
 
-   const fetchMasterBill = async () => {
+  const deleteDeclarations = useCallback(async (ids) => {
+    const res = await fetch(`${API_URL}/declarations`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids }),
+    });
+    if (!res.ok) throw new Error('Failed to delete declarations');
+
+    const result = await res.json();
+    setDeclarations((prev) => prev.filter((d) => !ids.includes(d.id)));
+    return result;
+  }, []);
+
+   const fetchMasterBill = useCallback(async () => {
     try {
       const res = await fetch(`${API_URL}/master-bill`);
       const data = await res.json();
@@ -110,9 +126,9 @@ export default function useDeclarationsApi() {
     } catch (err) {
       console.error('Failed to load master bill:', err);
     }
-  };
+  }, []);
 
-  const generateXml = async (data) => {
+  const generateXml = useCallback(async (data) => {
     const res = await fetch(`${API_URL}/generate-xml`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -121,12 +137,11 @@ export default function useDeclarationsApi() {
     if (!res.ok) throw new Error('Failed to generate XML');
     const blob = await res.blob();
     return blob;
-  };
+  }, []);
 
   useEffect(() => {
-    fetchDeclarations();
     if (availableCodes.length === 0) fetchTariffCodes();
-  }, [availableCodes]);
+  }, [availableCodes, fetchTariffCodes]);
 
   return {
     declarations,
@@ -141,6 +156,7 @@ export default function useDeclarationsApi() {
     saveDeclaration,
     saveTariffs,
     deleteDeclaration,
+    deleteDeclarations,
     fetchMasterBill,
     generateXml,
   };

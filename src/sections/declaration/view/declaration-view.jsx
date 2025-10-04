@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 import Card from '@mui/material/Card';
 import Stack from '@mui/material/Stack';
@@ -12,6 +12,13 @@ import TablePagination from '@mui/material/TablePagination';
 import Box from '@mui/material/Box';
 import TableRow from '@mui/material/TableRow';
 import TableCell from '@mui/material/TableCell';
+import Tabs from '@mui/material/Tabs';
+import Tab from '@mui/material/Tab';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContentText from '@mui/material/DialogContentText';
 
 import Iconify from 'src/components/iconify';
 import Scrollbar from 'src/components/scrollbar';
@@ -36,7 +43,9 @@ export default function DeclarationPage() {
     saveDeclaration,
     saveTariffs,
     generateXml,
-    deleteDeclaration
+    deleteDeclaration,
+    deleteDeclarations,
+    fetchDeclarations
   } = useDeclarationsApi();
 
   const [page, setPage] = useState(0);
@@ -51,6 +60,9 @@ export default function DeclarationPage() {
   const [tariffModalOpen, setTariffModalOpen] = useState(false);
   const [masterBillFormOpen, setMasterBillFormOpen] = useState(false);
   const [activeTariffDeclaration, setActiveTariffDeclaration] = useState(null);
+  const [activeTab, setActiveTab] = useState(0); // 0 for Air, 1 for Ocean
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const handleSort = (event, id) => {
     const isAsc = orderBy === id && order === 'asc';
@@ -95,12 +107,56 @@ export default function DeclarationPage() {
     setRowsPerPage(parseInt(event.target.value, 10));
   };
 
+  const handleTabChange = (event, newValue) => {
+    setActiveTab(newValue);
+    setPage(0); // Reset to first page when switching tabs
+  };
+
+  const handleBulkDelete = () => {
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmBulkDelete = async () => {
+    try {
+      setDeleting(true);
+      
+      // Delete all selected declarations in one API call
+      await deleteDeclarations(selected);
+      
+      // Clear selection and close dialog
+      setSelected([]);
+      setDeleteDialogOpen(false);
+      
+      // Refresh the current tab's declarations
+      const transportMode = activeTab === 0 ? 'AIR' : 'OCEAN';
+      fetchDeclarations(transportMode);
+      
+    } catch (error) {
+      console.error('Error deleting declarations:', error);
+      alert('Error deleting declarations. Please try again.');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleCancelBulkDelete = () => {
+    setDeleteDialogOpen(false);
+  };
+
+  // Fetch declarations when tab changes and on initial load
+  useEffect(() => {
+    const transportMode = activeTab === 0 ? 'AIR' : 'OCEAN';
+    fetchDeclarations(transportMode);
+  }, [activeTab, fetchDeclarations]);
+
   const handleOpenModal = (declaration = null) => {
     if (declaration) {
       setSelectedDeclaration(declaration);
       setEditMode(true);
     } else {
-      setSelectedDeclaration(null);
+      // For new declarations, set transport mode based on active tab
+      const transportMode = activeTab === 0 ? 'AIR' : 'OCEAN';
+      setSelectedDeclaration({ transportMode });
       setEditMode(false);
     }
     setModalOpen(true);
@@ -189,6 +245,17 @@ export default function DeclarationPage() {
       <Stack direction="row" alignItems="center" justifyContent="space-between" mb={5}>
         <Typography variant="h4">Declarations</Typography>
         <Box>
+          {selected.length > 0 && (
+            <Button
+              variant="contained"
+              color="error"
+              startIcon={<Iconify icon="eva:trash-2-outline" />}
+              onClick={handleBulkDelete}
+              sx={{ mr: 2 }}
+            >
+              Delete Selected ({selected.length})
+            </Button>
+          )}
           <Button
             variant="contained"
             color="primary"
@@ -208,6 +275,13 @@ export default function DeclarationPage() {
           </Button>
         </Box>
       </Stack>
+
+      <Card sx={{ mb: 3 }}>
+        <Tabs value={activeTab} onChange={handleTabChange} aria-label="transport mode tabs">
+          <Tab label="Air" />
+          <Tab label="Ocean" />
+        </Tabs>
+      </Card>
 
       <Card>
         <Scrollbar>
@@ -292,6 +366,41 @@ export default function DeclarationPage() {
         onClose={() => setMasterBillFormOpen(false)}
         onSubmit={handleGenerateXml}
       />
+
+      {/* Bulk Delete Confirmation Dialog */}
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={handleCancelBulkDelete}
+        aria-labelledby="delete-dialog-title"
+        aria-describedby="delete-dialog-description"
+      >
+        <DialogTitle id="delete-dialog-title">
+          Delete Selected Declarations
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText id="delete-dialog-description">
+            Are you sure you want to delete {selected.length} selected declaration{selected.length > 1 ? 's' : ''}? 
+            This action cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button 
+            onClick={handleCancelBulkDelete} 
+            disabled={deleting}
+          >
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleConfirmBulkDelete} 
+            color="error" 
+            variant="contained"
+            disabled={deleting}
+            startIcon={deleting ? <Iconify icon="eos-icons:loading" /> : <Iconify icon="eva:trash-2-outline" />}
+          >
+            {deleting ? 'Deleting...' : 'Delete'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 }
