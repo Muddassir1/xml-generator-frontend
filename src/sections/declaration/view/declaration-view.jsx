@@ -189,7 +189,7 @@ export default function DeclarationPage() {
     // Check if total tariff cost is equal to the declaration net cost
     const totalTariffCost = newTariffs.reduce((sum, tariff) => sum + parseFloat(tariff.cost), 0);
     const { netCost } = { ...activeTariffDeclaration.valuation };
-    if (totalTariffCost !== parseFloat(netCost)) {
+    if (parseFloat(totalTariffCost) !== parseFloat(netCost)) {
       alert(`The total cost of the items should be equal to the net cost of the declaration.`);
       return;
     }
