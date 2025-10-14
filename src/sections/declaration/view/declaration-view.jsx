@@ -119,18 +119,18 @@ export default function DeclarationPage() {
   const handleConfirmBulkDelete = async () => {
     try {
       setDeleting(true);
-      
+
       // Delete all selected declarations in one API call
       await deleteDeclarations(selected);
-      
+
       // Clear selection and close dialog
       setSelected([]);
       setDeleteDialogOpen(false);
-      
+
       // Refresh the current tab's declarations
       const transportMode = activeTab === 0 ? 'AIR' : 'OCEAN';
       fetchDeclarations(transportMode);
-      
+
     } catch (error) {
       console.error('Error deleting declarations:', error);
       alert('Error deleting declarations. Please try again.');
@@ -189,7 +189,9 @@ export default function DeclarationPage() {
     // Check if total tariff cost is equal to the declaration net cost
     const totalTariffCost = newTariffs.reduce((sum, tariff) => sum + parseFloat(tariff.cost), 0);
     const { netCost } = { ...activeTariffDeclaration.valuation };
-    if (parseFloat(totalTariffCost) !== parseFloat(netCost)) {
+    const totalRounded = parseFloat(totalTariffCost.toFixed(2));
+    const netRounded = parseFloat(parseFloat(netCost).toFixed(2));
+    if (totalRounded !== netRounded) {
       alert(`The total cost of the items should be equal to the net cost of the declaration.`);
       return;
     }
@@ -379,20 +381,20 @@ export default function DeclarationPage() {
         </DialogTitle>
         <DialogContent>
           <DialogContentText id="delete-dialog-description">
-            Are you sure you want to delete {selected.length} selected declaration{selected.length > 1 ? 's' : ''}? 
+            Are you sure you want to delete {selected.length} selected declaration{selected.length > 1 ? 's' : ''}?
             This action cannot be undone.
           </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button 
-            onClick={handleCancelBulkDelete} 
+          <Button
+            onClick={handleCancelBulkDelete}
             disabled={deleting}
           >
             Cancel
           </Button>
-          <Button 
-            onClick={handleConfirmBulkDelete} 
-            color="error" 
+          <Button
+            onClick={handleConfirmBulkDelete}
+            color="error"
             variant="contained"
             disabled={deleting}
             startIcon={deleting ? <Iconify icon="eos-icons:loading" /> : <Iconify icon="eva:trash-2-outline" />}
