@@ -121,6 +121,7 @@ export default function DeclarationFormModal({ open, onClose, onSave, editData, 
         ...prev,
         exporter: { id: null, number: '', name: '' }
       }));
+      setIsNewExporterNoTin(false);
     } else {
       const user = exporters.find(u => u.id === value);
       setIsNewExporter(false);
@@ -129,6 +130,10 @@ export default function DeclarationFormModal({ open, onClose, onSave, editData, 
         ...prev,
         exporter: { id: user?.id, number: user?.tin, name: user?.name }
       }));
+      // If exporter has no TIN but has address fields, show the address fields by default for editing
+      const hasAddress = user && (user.address || user.city || user.state || user.postalcode || user.country || user.phone);
+      const hasTin = user && !!user.tin;
+      setIsNewExporterNoTin(!hasTin && !!hasAddress);
     }
   };
 
@@ -150,6 +155,10 @@ export default function DeclarationFormModal({ open, onClose, onSave, editData, 
           transportMode: editData.transportMode || 'AIR',
         });
         setExistingTariffs(editData.items || []);
+        // If the exporter in editData has address fields but no TIN, open the address fields for editing
+        const exporterHasAddress = editData.exporter && (editData.exporter.address || editData.exporter.city || editData.exporter.state || editData.exporter.postalcode || editData.exporter.country || editData.exporter.phone);
+        const exporterHasTin = editData.exporter && !!editData.exporter.number;
+        setIsNewExporterNoTin(!exporterHasTin && !!exporterHasAddress);
       } else {
         // New declaration - only set transport mode
         setFormData({
@@ -444,6 +453,7 @@ export default function DeclarationFormModal({ open, onClose, onSave, editData, 
                 </Typography>
               </>
             ) : (
+              // Address Fields
               <>
                 <TextField
                   name="exporter.name"
