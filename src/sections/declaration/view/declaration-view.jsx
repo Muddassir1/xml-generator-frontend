@@ -305,7 +305,7 @@ export default function DeclarationPage() {
                   </TableRow>
                 ) : (
                   dataFiltered
-                    .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                    // .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                     .map((row) => (
                       <DeclarationTableRow
                         key={row.id}
@@ -331,7 +331,7 @@ export default function DeclarationPage() {
           </TableContainer>
         </Scrollbar>
 
-        <TablePagination
+        {/* <TablePagination
           page={page}
           component="div"
           count={declarations.length}
@@ -339,7 +339,7 @@ export default function DeclarationPage() {
           onPageChange={handleChangePage}
           rowsPerPageOptions={[5, 10, 25]}
           onRowsPerPageChange={handleChangeRowsPerPage}
-        />
+        /> */}
       </Card>
 
       <DeclarationFormModal
