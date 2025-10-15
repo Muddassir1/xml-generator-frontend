@@ -13,6 +13,7 @@ import InputLabel from '@mui/material/InputLabel';
 import Select from '@mui/material/Select';
 import axios from 'axios';
 import { packageTypes } from 'src/_mock/package_types';
+import { countries } from 'src/_mock/countries';
 import useDeclarationsApi from 'src/hooks/useDeclarationsApi';
 import { Autocomplete } from '@mui/material';
 import TariffFormModal from './tariff-form-modal';
@@ -196,10 +197,10 @@ export default function DeclarationFormModal({ open, onClose, onSave, editData, 
 
   const handleSaveClick = async () => {
     // Include tariffs in the data for new declarations
-    const dataToSave = editData?.id 
-      ? formData 
+    const dataToSave = editData?.id
+      ? formData
       : { ...formData, tariffs: existingTariffs };
-    
+
     await onSave(dataToSave);
     setFormData(initialFormData);
     setExistingTariffs([]);
@@ -230,7 +231,7 @@ export default function DeclarationFormModal({ open, onClose, onSave, editData, 
       // Check if total tariff cost is equal to the declaration net cost
       const totalTariffCost = tariffsData.reduce((sum, tariff) => sum + parseFloat(tariff.cost || 0), 0);
       const netCost = parseFloat(formData.valuation.netCost || 0);
-      
+
       if (netCost > 0 && totalTariffCost !== netCost) {
         alert(`The total cost of the items should be equal to the net cost of the declaration.`);
         return;
@@ -244,7 +245,7 @@ export default function DeclarationFormModal({ open, onClose, onSave, editData, 
         // For new declarations, just store the tariffs locally
         setExistingTariffs(tariffsData);
       }
-      
+
       handleCloseTariffModal();
     } catch (error) {
       console.error("Error saving tariffs:", error);
@@ -259,23 +260,23 @@ export default function DeclarationFormModal({ open, onClose, onSave, editData, 
           <Typography variant="h6" component="h2">
             {editData ? 'Edit Declaration' : 'Add New Declaration'}
           </Typography>
-        <Stack spacing={2} mt={2}>
-          <Typography variant="subtitle1">General</Typography>
-          
-          {/* Transport Mode Display */}
-          <Box sx={{ 
-            p: 2, 
-            bgcolor: formData.transportMode === 'AIR' ? 'primary.50' : 'secondary.50',
-            borderRadius: 1,
-            border: 1,
-            borderColor: formData.transportMode === 'AIR' ? 'primary.200' : 'secondary.200'
-          }}>
-            <Typography variant="body2" color="text.secondary">
-              Transport Mode: <strong>{formData.transportMode === 'AIR' ? 'Air' : 'Ocean'}</strong>
-            </Typography>
-          </Box>
-          
-          <TextField name="billNumber" label="Bill Number" value={formData.billNumber} onChange={handleChange} />
+          <Stack spacing={2} mt={2}>
+            <Typography variant="subtitle1">General</Typography>
+
+            {/* Transport Mode Display */}
+            <Box sx={{
+              p: 2,
+              bgcolor: formData.transportMode === 'AIR' ? 'primary.50' : 'secondary.50',
+              borderRadius: 1,
+              border: 1,
+              borderColor: formData.transportMode === 'AIR' ? 'primary.200' : 'secondary.200'
+            }}>
+              <Typography variant="body2" color="text.secondary">
+                Transport Mode: <strong>{formData.transportMode === 'AIR' ? 'Air' : 'Ocean'}</strong>
+              </Typography>
+            </Box>
+
+            <TextField name="billNumber" label="Bill Number" value={formData.billNumber} onChange={handleChange} />
             {/* Importer Section */}
             {!isNewImporter ? (
               <>
@@ -475,6 +476,7 @@ export default function DeclarationFormModal({ open, onClose, onSave, editData, 
                   <TextField
                     name="exporter.state"
                     label="State"
+                    inputProps={{ maxLength: 3 }}
                     value={formData.exporter.state || ''}
                     onChange={handleChange}
                     fullWidth
@@ -490,14 +492,19 @@ export default function DeclarationFormModal({ open, onClose, onSave, editData, 
                   />
                 </Stack>
                 <Stack direction="row" spacing={2} sx={{ mt: 2 }}>
-                  <TextField
-                    name="exporter.country"
-                    label="Country"
-                    value={formData.exporter.country || ''}
-                    onChange={handleChange}
-                    fullWidth
-                    required
-                  />
+                  <FormControl fullWidth sx={{ mt: 2 }}>
+                    <InputLabel>Country</InputLabel>
+                    <Select
+                      name="exporter.country"
+                      value={formData.exporter.country || ''}
+                      label="Country"
+                      onChange={handleChange}
+                    >
+                      {countries.map((c) => (
+                        <MenuItem key={c.code} value={c.code}>{c.name}</MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
                   <TextField
                     name="exporter.phone"
                     label="Phone"
