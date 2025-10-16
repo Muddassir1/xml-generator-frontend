@@ -240,8 +240,9 @@ export default function DeclarationFormModal({ open, onClose, onSave, editData, 
       // Check if total tariff cost is equal to the declaration net cost
       const totalTariffCost = tariffsData.reduce((sum, tariff) => sum + parseFloat(tariff.cost || 0), 0);
       const netCost = parseFloat(formData.valuation.netCost || 0);
-
-      if (netCost > 0 && totalTariffCost !== netCost) {
+      const totalRounded = parseFloat(totalTariffCost.toFixed(2));
+      const netRounded = parseFloat(parseFloat(netCost).toFixed(2));
+      if (totalRounded !== netRounded) {
         alert(`The total cost of the items should be equal to the net cost of the declaration.`);
         return;
       }

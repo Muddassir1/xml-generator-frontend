@@ -13,7 +13,8 @@ import AccordionSummary from '@mui/material/AccordionSummary';
 import AccordionDetails from '@mui/material/AccordionDetails';
 
 import Iconify from 'src/components/iconify';
-import { Autocomplete, Grid } from '@mui/material';
+import { Autocomplete, Grid, Select, MenuItem, InputLabel, FormControl } from '@mui/material';
+import { procedures } from 'src/_mock/procedures';
 
 const style = {
   position: 'absolute',
@@ -38,6 +39,7 @@ const createEmptyTariff = () => ({
   qty: '',
   cost: '',
   invNumber: '',
+  procedureCode: '',
   procedure: {
     importerNumber: '',
   },
@@ -196,6 +198,7 @@ export default function TariffFormModal({ open, onClose, onSave, existingTariffs
                     ['qty', 'Quantity', 'number'],
                     ['cost', 'Cost', 'number'],
                     ['invNumber', 'Invoice Number'],
+                    ['procedureCode', 'Procedure', 'procedure']
                     // ['procedure.importerNumber', 'Procedure Importer Number']
                   ].map(([name, label, type]) => (
                     <Grid item xs={12} sm={6} key={name}>
@@ -228,6 +231,22 @@ export default function TariffFormModal({ open, onClose, onSave, existingTariffs
                         />
 
 
+                      ) : type === 'procedure' ? (
+                        <FormControl fullWidth>
+                          <InputLabel>Procedure</InputLabel>
+                          <Select
+                            name={name}
+                            value={tariff.procedureCode || ''}
+                            label={label}
+                            onChange={(e) => handleChange(index, e)}
+                            fullWidth
+                          >
+                            {/* <MenuItem value="">None</MenuItem> */}
+                            {procedures.map(p => (
+                              <MenuItem key={p.code} value={p.code}>{p.title}</MenuItem>
+                            ))}
+                          </Select>
+                        </FormControl>
                       ) : (
                         <TextField
                           name={name}
@@ -244,14 +263,14 @@ export default function TariffFormModal({ open, onClose, onSave, existingTariffs
                       )}
                     </Grid>
                   ))}
-                  <Grid item xs={12} sm={6}>
+                  {/* <Grid item xs={12} sm={6}>
                     <TextField
                       label="Procedure"
                       value="Regular Import"
                       disabled
                       fullWidth
                     />
-                  </Grid>
+                  </Grid> */}
                 </Grid>
               </Box>
             </AccordionDetails>
