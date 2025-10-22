@@ -162,7 +162,7 @@ export default function DeclarationPage() {
     setModalOpen(true);
   };
 
-  const handleCloseModal = () => setModalOpen(false);
+  const handleCloseModal = (e, reason) => { if (reason !== "backdropClick") setModalOpen(false) };
 
   const handleSaveDeclaration = async (newDeclaration) => {
     try {
@@ -179,9 +179,11 @@ export default function DeclarationPage() {
     setTariffModalOpen(true);
   };
 
-  const handleCloseTariffModal = () => {
-    setTariffModalOpen(false);
-    setActiveTariffDeclaration(null);
+  const handleCloseTariffModal = (e, reason) => {
+    if (reason !== "backdropClick") {
+      setTariffModalOpen(false);
+      setActiveTariffDeclaration(null);
+    }
   };
 
   const handleSaveTariffs = async (declarationId, newTariffs) => {

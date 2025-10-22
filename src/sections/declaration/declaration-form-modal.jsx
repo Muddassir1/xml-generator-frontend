@@ -231,8 +231,9 @@ export default function DeclarationFormModal({ open, onClose, onSave, editData, 
     setTariffModalOpen(true);
   };
 
-  const handleCloseTariffModal = () => {
-    setTariffModalOpen(false);
+  const handleCloseTariffModal = (e, reason) => {
+    if (reason !== "backdropClick")
+      setTariffModalOpen(false);
   };
 
   const handleSaveTariffs = async (tariffsData) => {
