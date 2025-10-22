@@ -313,12 +313,12 @@ export default function MasterBillForm({ open, onClose, onSubmit }) {
               ))}
             </Select>
           </FormControl>
-          <TextField
+          {/* <TextField
             label="Exporter Number"
             value={formData.exporter.number}
             onChange={(e) => handleChange('exporter.number', e.target.value)}
             disabled={!!exporters.find((u) => u.id === formData.exporter.id)?.tin}
-          />
+          /> */}
 
           {/* Consignment */}
           <TextField
