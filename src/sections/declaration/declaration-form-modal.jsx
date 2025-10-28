@@ -72,26 +72,17 @@ export default function DeclarationFormModal({ open, onClose, onSave, editData, 
   const [isNewExporterNoTin, setIsNewExporterNoTin] = useState(false);
   const [tariffModalOpen, setTariffModalOpen] = useState(false);
   const [existingTariffs, setExistingTariffs] = useState([]);
-  const [availableCodes, setAvailableCodes] = useState([]);
-  const { users, exporters, fetchUsers, fetchExporters, saveTariffs } = useDeclarationsApi();
+  // const [availableCodes, setAvailableCodes] = useState([]);
+  const { users, exporters, availableCodes, fetchUsers, fetchExporters, saveTariffs } = useDeclarationsApi();
 
   useEffect(() => {
     if (open) {
       fetchUsers();
       fetchExporters();
-      fetchAvailableCodes();
     }
   }, [open]);
 
-  const fetchAvailableCodes = async () => {
-    try {
-      const response = await axios.get('http://localhost:3001/tariffs');
-      setAvailableCodes(response.data || []);
-    } catch (error) {
-      console.error('Error fetching available codes:', error);
-      setAvailableCodes([]);
-    }
-  };
+
 
   const handleSelectImporter = (value) => {
 
