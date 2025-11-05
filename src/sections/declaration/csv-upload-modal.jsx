@@ -15,6 +15,8 @@ import {
 } from '@mui/material';
 import Iconify from '../../components/iconify';
 
+const API_URL = import.meta.env.VITE_BACKEND_URL;
+
 export default function CsvUploadModal({ open, onClose }) {
   const [transportMode, setTransportMode] = React.useState('OCEAN');
   const [file, setFile] = React.useState(null);
@@ -43,7 +45,7 @@ export default function CsvUploadModal({ open, onClose }) {
     formData.append('transportMode', transportMode);
 
     try {
-      const response = await fetch('http://localhost:3001/declarations/upload-csv', {
+      const response = await fetch(`${API_URL}/declarations/upload-csv`, {
         method: 'POST',
         body: formData,
       });
