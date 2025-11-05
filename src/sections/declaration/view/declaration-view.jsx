@@ -32,6 +32,7 @@ import DeclarationFormModal from '../declaration-form-modal';
 import TariffFormModal from '../tariff-form-modal';
 import { emptyRows, applyFilter, getComparator } from '../utils';
 import MasterBillForm from '../masterbill-form-modal';
+import CsvUploadModal from '../csv-upload-modal';
 
 // ----------------------------------------------------------------------
 
@@ -63,6 +64,7 @@ export default function DeclarationPage() {
   const [activeTab, setActiveTab] = useState(0); // 0 for Air, 1 for Ocean
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [openCsvUpload, setOpenCsvUpload] = useState(false);
 
   const handleSort = (event, id) => {
     const isAsc = orderBy === id && order === 'asc';
@@ -274,11 +276,26 @@ export default function DeclarationPage() {
             color="inherit"
             startIcon={<Iconify icon="eva:plus-fill" />}
             onClick={() => handleOpenModal()}
+            sx={{ mr: 2 }}
           >
             New Declaration
           </Button>
+          <Button
+            variant="contained"
+            color="primary"
+            startIcon={<Iconify icon="eva:upload-fill" />}
+            onClick={() => setOpenCsvUpload(true)}
+            sx={{ mr: 2 }}
+          >
+            Upload CSV
+          </Button>
         </Box>
       </Stack>
+
+      <CsvUploadModal
+        open={openCsvUpload}
+        onClose={() => setOpenCsvUpload(false)}
+      />
 
       <Card sx={{ mb: 3 }}>
         <Tabs value={activeTab} onChange={handleTabChange} aria-label="transport mode tabs">
