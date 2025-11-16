@@ -211,7 +211,9 @@ export default function DeclarationPage() {
   const handleGenerateXml = async (data) => {
     // data contains the form data from MasterBillForm
     try {
-      const blob = await generateXml(data);
+      // include currently selected declaration IDs so backend can generate XML only for them
+      const payload = { masterBill: data, selectedIds: selected };
+      const blob = await generateXml(payload);
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.style.display = 'none';
