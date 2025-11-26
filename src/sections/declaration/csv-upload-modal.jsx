@@ -25,7 +25,8 @@ export default function CsvUploadModal({ open, onClose }) {
 
   const handleFileChange = (event) => {
     const selectedFile = event.target.files[0];
-    if (selectedFile && selectedFile.type !== 'text/csv') {
+    console.log(selectedFile.type)
+    if (selectedFile && selectedFile.type !== 'text/csv' && selectedFile.type !== 'application/vnd.ms-excel') {
       setError('Please select a CSV file');
       setFile(null);
     } else {
