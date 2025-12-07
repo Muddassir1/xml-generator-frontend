@@ -28,6 +28,11 @@ export default function DeclarationTableRow({ selected, row, handleClick, onSave
 
   const [openMenu, setOpenMenu] = useState(null);
 
+  // Format netCost with commas and two decimal places (keep $ prefix)
+  const formattedNetCost = (valuation && valuation.netCost != null)
+    ? `$${Number(valuation.netCost).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+    : '';
+
   const handleOpenMenu = (event) => {
     setOpenMenu(event.currentTarget);
   };
@@ -70,7 +75,7 @@ export default function DeclarationTableRow({ selected, row, handleClick, onSave
         <TableCell>{exporter.name}</TableCell>
         <TableCell>{packages.pkgCount}</TableCell>
         <TableCell>{`${packages.grossWt} lbs`}</TableCell>
-        <TableCell>${valuation.netCost}</TableCell>
+        <TableCell>{formattedNetCost}</TableCell>
 
         <TableCell align="right">
           <IconButton onClick={handleOpenMenu}>
