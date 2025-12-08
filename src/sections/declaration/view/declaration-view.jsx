@@ -44,6 +44,7 @@ export default function DeclarationPage() {
     saveDeclaration,
     saveTariffs,
     generateXml,
+    generateHouseXml,
     deleteDeclaration,
     deleteDeclarations,
     fetchDeclarations
@@ -60,6 +61,7 @@ export default function DeclarationPage() {
   const [selectedDeclaration, setSelectedDeclaration] = useState(null);
   const [tariffModalOpen, setTariffModalOpen] = useState(false);
   const [masterBillFormOpen, setMasterBillFormOpen] = useState(false);
+  const [masterBillMode, setMasterBillMode] = useState('CONSOLIDATED');
   const [activeTariffDeclaration, setActiveTariffDeclaration] = useState(null);
   const [activeTab, setActiveTab] = useState(0); // 0 for Air, 1 for Ocean
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -229,6 +231,30 @@ export default function DeclarationPage() {
     }
   };
 
+  const handleGenerateHouseXml = async (data) => {
+    try {
+      if (selected.length !== 1) {
+        alert('Please select exactly one declaration to generate HOUSE XML.');
+        return;
+      }
+      const payload = { masterBill: data, declarationId: selected[0] };
+      const blob = await generateHouseXml(payload);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = 'HOUSE_SADEntry.xml';
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      setMasterBillFormOpen(false);
+    } catch (error) {
+      console.error('Failed to generate HOUSE XML:', error);
+      alert(`Failed to generate HOUSE XML: ${error.message}`);
+    }
+  };
+
 
   const dataFiltered = applyFilter({
     inputData: declarations,
@@ -268,11 +294,22 @@ export default function DeclarationPage() {
             variant="contained"
             color="primary"
             startIcon={<Iconify icon="eva:download-fill" />}
-            onClick={() => setMasterBillFormOpen(true)}
+            onClick={() => { setMasterBillMode('CONSOLIDATED'); setMasterBillFormOpen(true); }}
             sx={{ mr: 2 }}
           >
             Generate XML
           </Button>
+          {selected.length === 1 && (
+            <Button
+              variant="contained"
+              color="secondary"
+              startIcon={<Iconify icon="eva:download-fill" />}
+              onClick={() => { setMasterBillMode('HOUSE'); setMasterBillFormOpen(true); }}
+              sx={{ mr: 2 }}
+            >
+              Generate HOUSE XML
+            </Button>
+          )}
           <Button
             variant="contained"
             color="inherit"
@@ -387,7 +424,7 @@ export default function DeclarationPage() {
       <MasterBillForm
         open={masterBillFormOpen}
         onClose={() => setMasterBillFormOpen(false)}
-        onSubmit={handleGenerateXml}
+        onSubmit={masterBillMode === 'HOUSE' ? handleGenerateHouseXml : handleGenerateXml}
       />
 
       {/* Bulk Delete Confirmation Dialog */}

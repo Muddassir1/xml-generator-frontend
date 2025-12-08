@@ -119,7 +119,17 @@ export default function DeclarationFormModal({ open, onClose, onSave, editData, 
       setSelectedExporter(value);
       setFormData(prev => ({
         ...prev,
-        exporter: { id: user?.id, number: user?.tin, name: user?.name }
+        exporter: {
+          id: user?.id,
+          number: user?.tin,
+          name: user?.name,
+          address: user?.address || '',
+          city: user?.city || '',
+          state: user?.state || '',
+          postalcode: user?.postalcode || '',
+          country: user?.country || '',
+          phone: user?.phone || ''
+        }
       }));
       // If exporter has no TIN but has address fields, show the address fields by default for editing
       const hasAddress = user && (user.address || user.city || user.state || user.postalcode || user.country || user.phone);
@@ -152,6 +162,11 @@ export default function DeclarationFormModal({ open, onClose, onSave, editData, 
         setIsNewExporterNoTin(!exporterHasTin && !!exporterHasAddress);
       } else {
         // New declaration - only set transport mode
+        setSelectedExporter(null);
+        setSelectedImporter(null);
+        setIsNewExporter(false);
+        setIsNewExporterNoTin(false);
+        setIsNewImporter(false);
         setFormData({
           ...initialFormData,
           transportMode: editData.transportMode || 'AIR',

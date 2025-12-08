@@ -139,6 +139,17 @@ export default function useDeclarationsApi() {
     return blob;
   }, []);
 
+  const generateHouseXml = useCallback(async (data) => {
+    const res = await fetch(`${API_URL}/generate-xml/house`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error('Failed to generate HOUSE XML');
+    const blob = await res.blob();
+    return blob;
+  }, []);
+
   useEffect(() => {
     if (availableCodes.length === 0) fetchTariffCodes();
   }, [availableCodes, fetchTariffCodes]);
@@ -159,5 +170,6 @@ export default function useDeclarationsApi() {
     deleteDeclarations,
     fetchMasterBill,
     generateXml,
+    generateHouseXml,
   };
 }
