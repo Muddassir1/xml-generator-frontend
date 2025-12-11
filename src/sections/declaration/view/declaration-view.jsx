@@ -271,11 +271,12 @@ export default function DeclarationPage() {
     { id: 'pkgCount', label: 'Pkg Count' },
     { id: 'grossWt', label: 'Gross Wt' },
     { id: 'netCost', label: 'Net Cost' },
+    { id: 'comment', label: 'Comments', minWidth: 250 },
     { id: '' },
   ];
 
   return (
-    <Container>
+    <Container maxWidth="xl">
       <Stack direction="row" alignItems="center" justifyContent="space-between" mb={5}>
         <Typography variant="h4">Declarations</Typography>
         <Box>
@@ -359,7 +360,7 @@ export default function DeclarationPage() {
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={8} align="center">Loading...</TableCell>
+                    <TableCell colSpan={9} align="center">Loading...</TableCell>
                   </TableRow>
                 ) : (
                   dataFiltered

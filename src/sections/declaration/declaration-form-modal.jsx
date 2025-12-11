@@ -60,6 +60,7 @@ const initialFormData = {
     netInsurance: '',
     netFreight: '',
   },
+  comment: '',
 };
 
 export default function DeclarationFormModal({ open, onClose, onSave, editData, onManageTariffs }) {
@@ -570,6 +571,18 @@ export default function DeclarationFormModal({ open, onClose, onSave, editData, 
             <TextField name="valuation.netCost" label="Net Cost" type="number" value={formData.valuation.netCost} onChange={handleChange} />
             <TextField name="valuation.netInsurance" label="Net Insurance" type="number" value={formData.valuation.netInsurance} onChange={handleChange} />
             <TextField name="valuation.netFreight" label="Net Freight" type="number" value={formData.valuation.netFreight} onChange={handleChange} />
+
+            {/* Comments section: separate textarea below Financial */}
+            <TextField
+              name="comment"
+              label="Comments"
+              value={formData.comment || ''}
+              onChange={handleChange}
+              fullWidth
+              multiline
+              minRows={3}
+              sx={{ mt: 2 }}
+            />
 
             <Button variant="contained" onClick={handleOpenTariffModal} sx={{ mt: 2 }}>
               Manage Tariffs

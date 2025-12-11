@@ -24,6 +24,7 @@ export default function DeclarationTableRow({ selected, row, handleClick, onSave
     packages,
     valuation,
     items,
+    comment,
   } = row;
 
   const [openMenu, setOpenMenu] = useState(null);
@@ -76,6 +77,20 @@ export default function DeclarationTableRow({ selected, row, handleClick, onSave
         <TableCell>{packages.pkgCount}</TableCell>
         <TableCell>{`${packages.grossWt} lbs`}</TableCell>
         <TableCell>{formattedNetCost}</TableCell>
+        <TableCell sx={{ maxWidth: 480, whiteSpace: 'normal' }}>
+          <Typography
+            variant="body2"
+            sx={{
+              display: '-webkit-box',
+              WebkitLineClamp: 3,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis'
+            }}
+          >
+            {comment}
+          </Typography>
+        </TableCell>
 
         <TableCell align="right">
           <IconButton onClick={handleOpenMenu}>

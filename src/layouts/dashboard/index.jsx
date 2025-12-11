@@ -23,7 +23,7 @@ export default function DashboardLayout({ children }) {
           flexDirection: { xs: 'column', lg: 'row' },
         }}
       >
-        <Nav openNav={openNav} onCloseNav={() => setOpenNav(false)} />
+        {/* <Nav openNav={openNav} onCloseNav={() => setOpenNav(false)} /> */}
 
         <Main>{children}</Main>
       </Box>
