@@ -9,6 +9,12 @@ import MenuItem from '@mui/material/MenuItem';
 import TableCell from '@mui/material/TableCell';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogContentText from '@mui/material/DialogContentText';
+import DialogActions from '@mui/material/DialogActions';
+import Button from '@mui/material/Button';
 
 import Iconify from 'src/components/iconify';
 import useDeclarationsApi from 'src/hooks/useDeclarationsApi';
@@ -28,6 +34,7 @@ export default function DeclarationTableRow({ selected, row, handleClick, onSave
   } = row;
 
   const [openMenu, setOpenMenu] = useState(null);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
 
   // Format netCost with commas and two decimal places (keep $ prefix)
   const formattedNetCost = (valuation && valuation.netCost != null)
@@ -48,16 +55,25 @@ export default function DeclarationTableRow({ selected, row, handleClick, onSave
     handleCloseMenu();
   };
 
+  const handleOpenDeleteConfirm = () => {
+    setConfirmDeleteOpen(true);
+    handleCloseMenu();
+  };
+
+  const handleCloseDeleteConfirm = () => {
+    setConfirmDeleteOpen(false);
+  };
+
   const handleDelete = async () => {
     try {
       await deleteDeclaration(row.id);
+      setConfirmDeleteOpen(false);
       handleCloseMenu();
     } catch (error) {
       console.error("Error deleting declaration:", error);
       alert('Error deleting the declaration.');
     }
   };
-
 
   return (
     <>
@@ -119,12 +135,35 @@ export default function DeclarationTableRow({ selected, row, handleClick, onSave
           Manage Tariffs
         </MenuItem>
 
-        <MenuItem onClick={handleDelete} sx={{ color: 'error.main' }}>
+        <MenuItem onClick={handleOpenDeleteConfirm} sx={{ color: 'error.main' }}>
           <Iconify icon="eva:trash-2-outline" sx={{ mr: 1 }} />
           Delete
         </MenuItem>
       </Popover>
 
+      <Dialog
+        open={confirmDeleteOpen}
+        onClose={handleCloseDeleteConfirm}
+        aria-labelledby="declaration-delete-dialog-title"
+        aria-describedby="declaration-delete-dialog-description"
+      >
+        <DialogTitle id="declaration-delete-dialog-title">
+          Delete Declaration
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText id="declaration-delete-dialog-description">
+            {`Are you sure you want to delete declaration "${billNumber}"? This action cannot be undone.`}
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseDeleteConfirm}>
+            Cancel
+          </Button>
+          <Button onClick={handleDelete} color="error" variant="contained">
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 }
@@ -136,4 +175,5 @@ DeclarationTableRow.propTypes = {
   onSaveTariffs: PropTypes.func,
   onEdit: PropTypes.func,
   onManageTariffs: PropTypes.func,
+  deleteDeclaration: PropTypes.func.isRequired,
 };
