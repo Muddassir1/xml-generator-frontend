@@ -1,7 +1,7 @@
 // ----------------------------------------------------------------------
 
 export const account = {
-  displayName: 'Administrator',
+  displayName: 'Admin',
   email: 'admin@pickaservice.ky',
   photoURL: '/assets/images/avatars/avatar_25.jpg',
 };
