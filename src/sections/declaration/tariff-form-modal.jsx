@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { v4 as uuidv4 } from 'uuid';
 
+import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
 import Modal from '@mui/material/Modal';
 import Button from '@mui/material/Button';
@@ -15,6 +16,8 @@ import AccordionDetails from '@mui/material/AccordionDetails';
 import Iconify from 'src/components/iconify';
 import { Autocomplete, Grid, Select, MenuItem, InputLabel, FormControl } from '@mui/material';
 import { procedures } from 'src/_mock/procedures';
+
+const API_URL = import.meta.env.VITE_BACKEND_URL;
 
 const style = {
   position: 'absolute',
@@ -45,9 +48,19 @@ const createEmptyTariff = () => ({
   },
 });
 
-export default function TariffFormModal({ open, onClose, onSave, existingTariffs = [], availableCodes = [] }) {
+export default function TariffFormModal({
+  open,
+  onClose,
+  onSave,
+  declaration,
+  existingTariffs = [],
+  availableCodes = [],
+}) {
+  const invoiceInputRef = useRef(null);
   const [tariffs, setTariffs] = useState([]);
   const [expanded, setExpanded] = useState(false);
+  const [uploadingInvoice, setUploadingInvoice] = useState(false);
+  const [invoiceMessage, setInvoiceMessage] = useState(null);
 
   useEffect(() => {
     console.log("opening")
@@ -108,6 +121,74 @@ export default function TariffFormModal({ open, onClose, onSave, existingTariffs
     onSave(cleaned);
   };
 
+  const handleInvoiceSelected = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+
+    if (!file) return;
+
+    const clientId = declaration?.importer?.id;
+    if (!clientId) {
+      setInvoiceMessage({
+        severity: 'error',
+        text: 'Assign an importer to this declaration before uploading an invoice.',
+      });
+      return;
+    }
+
+    setUploadingInvoice(true);
+    setInvoiceMessage(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch(`${API_URL}/clients/${clientId}/invoices`, {
+        method: 'POST',
+        body: formData,
+      });
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to upload invoice');
+      }
+
+      const invoices = Array.isArray(result.invoices) ? result.invoices : [];
+      const importedTariffs = invoices.flatMap((invoice) =>
+        (Array.isArray(invoice.items) ? invoice.items : []).map((item) => ({
+          ...createEmptyTariff(),
+          code: item.tariff?.code || '',
+          desc: item.description || '',
+          cost: item.price ?? '',
+          qtyUnit: item.tariff?.unit || '',
+          classification: item.tariff || null,
+        }))
+      );
+
+      if (importedTariffs.length === 0) {
+        throw new Error('No invoice items with tariff data were found.');
+      }
+
+      setTariffs((currentTariffs) => {
+        const nonEmptyTariffs = currentTariffs.filter((tariff) =>
+          ['code', 'desc', 'qty', 'cost', 'invNumber', 'procedureCode'].some(
+            (field) => String(tariff[field] ?? '').trim()
+          )
+        );
+        return [...nonEmptyTariffs, ...importedTariffs];
+      });
+      setExpanded(importedTariffs[0].key);
+      setInvoiceMessage({
+        severity: 'success',
+        text: `Imported ${importedTariffs.length} tariff item(s). Save Tariffs to apply them to this declaration.`,
+      });
+    } catch (error) {
+      setInvoiceMessage({ severity: 'error', text: error.message });
+    } finally {
+      setUploadingInvoice(false);
+    }
+  };
+
   const handleDirectChange = (index, name, value) => {
     const updated = [...tariffs];
     const [section, field] = name.split('.');
@@ -126,6 +207,25 @@ export default function TariffFormModal({ open, onClose, onSave, existingTariffs
     <Modal open={open} onClose={onClose}>
       <Box sx={style}>
         <Typography variant="h6" component="h2" sx={{ mb: 4 }}>Manage Tariffs</Typography>
+
+        {invoiceMessage && (
+          <Alert severity={invoiceMessage.severity} sx={{ mb: 2 }}>
+            {invoiceMessage.text}
+          </Alert>
+        )}
+        {!declaration?.importer?.id && (
+          <Alert severity="info" sx={{ mb: 2 }}>
+            Assign an importer to this declaration before uploading an invoice.
+          </Alert>
+        )}
+
+        <input
+          ref={invoiceInputRef}
+          type="file"
+          accept="application/pdf,.pdf"
+          onChange={handleInvoiceSelected}
+          hidden
+        />
 
         {tariffs.map((tariff, index) => (
           <Accordion
@@ -278,9 +378,18 @@ export default function TariffFormModal({ open, onClose, onSave, existingTariffs
           </Accordion>
         ))}
 
-        <Button startIcon={<Iconify icon="eva:plus-fill" />} onClick={handleAddTariff} sx={{ mt: 2 }}>
-          Add Another Tariff
-        </Button>
+        <Box mt={2} display="flex" gap={2}>
+          <Button
+            startIcon={<Iconify icon="eva:cloud-upload-fill" />}
+            onClick={() => invoiceInputRef.current?.click()}
+            disabled={uploadingInvoice || !declaration?.importer?.id}
+          >
+            {uploadingInvoice ? 'Uploading Invoice...' : 'Upload Invoice'}
+          </Button>
+          <Button startIcon={<Iconify icon="eva:plus-fill" />} onClick={handleAddTariff}>
+            Add Another Tariff
+          </Button>
+        </Box>
 
         <Box mt={3} display="flex" justifyContent="flex-end">
           <Button onClick={onClose}>Cancel</Button>
@@ -298,7 +407,7 @@ TariffFormModal.propTypes = {
   open: PropTypes.bool.isRequired,
   onClose: PropTypes.func.isRequired,
   onSave: PropTypes.func.isRequired,
+  declaration: PropTypes.object,
   existingTariffs: PropTypes.array,
   availableCodes: PropTypes.array,
 };
-

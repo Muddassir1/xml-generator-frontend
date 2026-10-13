@@ -416,6 +416,7 @@ export default function DeclarationPage() {
           onSave={(tariffsData) =>
             handleSaveTariffs(activeTariffDeclaration?.id, tariffsData)
           }
+          declaration={activeTariffDeclaration}
           existingTariffs={activeTariffDeclaration?.items || []}
           availableCodes={availableCodes}
         />
