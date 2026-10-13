@@ -159,7 +159,9 @@ export default function TariffFormModal({
           ...createEmptyTariff(),
           code: item.tariff?.code || '',
           desc: item.description || '',
+          qty: 1,
           cost: item.price ?? '',
+          invNumber: invoice.order_number || '',
           qtyUnit: item.tariff?.unit || '',
           classification: item.tariff || null,
         }))
