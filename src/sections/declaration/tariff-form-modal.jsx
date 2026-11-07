@@ -64,7 +64,6 @@ export default function TariffFormModal({
   const [expanded, setExpanded] = useState(false);
   const [uploadingInvoice, setUploadingInvoice] = useState(false);
   const [invoiceMessage, setInvoiceMessage] = useState(null);
-  const [invoiceReviewFlags, setInvoiceReviewFlags] = useState([]);
   const [invoiceSubtotalChecks, setInvoiceSubtotalChecks] = useState([]);
 
   useEffect(() => {
@@ -143,7 +142,6 @@ export default function TariffFormModal({
 
     setUploadingInvoice(true);
     setInvoiceMessage(null);
-    setInvoiceReviewFlags([]);
     setInvoiceSubtotalChecks([]);
 
     try {
@@ -197,28 +195,6 @@ export default function TariffFormModal({
               ? `Items add up to the subtotal ${formatAmount(subtotal)}`
               : `Item total ${formatAmount(itemTotal)} does not match the subtotal ${formatAmount(subtotal)}`,
           };
-        })
-      );
-      setInvoiceReviewFlags(
-        invoices.flatMap((invoice, index) => {
-          const reportedFlags = Array.isArray(invoice.review_flags)
-            ? invoice.review_flags
-            : String(invoice.review_flags || '')
-              .split(';')
-              .map((flag) => flag.trim())
-              .filter(Boolean);
-          const flags = reportedFlags.length
-            ? reportedFlags
-            : invoice.needs_review
-              ? ['Manual review recommended']
-              : [];
-
-          if (flags.length === 0) return [];
-
-          return [{
-            orderNumber: invoice.order_number || `Order ${index + 1}`,
-            flags,
-          }];
         })
       );
       const importedTariffs = invoices.flatMap((invoice) =>
@@ -280,16 +256,6 @@ export default function TariffFormModal({
         {invoiceMessage && (
           <Alert severity={invoiceMessage.severity} sx={{ mb: 2 }}>
             {invoiceMessage.text}
-          </Alert>
-        )}
-        {invoiceReviewFlags.length > 0 && (
-          <Alert severity="warning" sx={{ mb: 2 }}>
-            <Typography variant="subtitle2">Invoice review flags</Typography>
-            {invoiceReviewFlags.map(({ orderNumber, flags }) => (
-              <Box key={orderNumber} component="div" sx={{ mt: 0.5 }}>
-                <strong>{orderNumber}:</strong> {flags.join(', ')}
-              </Box>
-            ))}
           </Alert>
         )}
         {invoiceSubtotalChecks.length > 0 && (
