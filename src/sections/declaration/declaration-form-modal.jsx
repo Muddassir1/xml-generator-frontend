@@ -602,6 +602,7 @@ export default function DeclarationFormModal({ open, onClose, onSave, editData, 
         open={tariffModalOpen}
         onClose={handleCloseTariffModal}
         onSave={handleSaveTariffs}
+        declaration={formData}
         existingTariffs={existingTariffs}
         availableCodes={availableCodes}
       />

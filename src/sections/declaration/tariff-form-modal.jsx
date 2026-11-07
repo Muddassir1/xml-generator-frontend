@@ -48,6 +48,9 @@ const createEmptyTariff = () => ({
   },
 });
 
+const needsClassificationReview = (tariff) =>
+  ['medium', 'low'].includes(String(tariff.classification?.confidence || '').toLowerCase());
+
 export default function TariffFormModal({
   open,
   onClose,
@@ -61,6 +64,8 @@ export default function TariffFormModal({
   const [expanded, setExpanded] = useState(false);
   const [uploadingInvoice, setUploadingInvoice] = useState(false);
   const [invoiceMessage, setInvoiceMessage] = useState(null);
+  const [invoiceReviewFlags, setInvoiceReviewFlags] = useState([]);
+  const [invoiceSubtotalChecks, setInvoiceSubtotalChecks] = useState([]);
 
   useEffect(() => {
     console.log("opening")
@@ -138,6 +143,8 @@ export default function TariffFormModal({
 
     setUploadingInvoice(true);
     setInvoiceMessage(null);
+    setInvoiceReviewFlags([]);
+    setInvoiceSubtotalChecks([]);
 
     try {
       const formData = new FormData();
@@ -154,6 +161,66 @@ export default function TariffFormModal({
       }
 
       const invoices = Array.isArray(result.invoices) ? result.invoices : [];
+      setInvoiceSubtotalChecks(
+        invoices.map((invoice, index) => {
+          const {
+            items_sum: itemTotal,
+            subtotal,
+            currency = 'USD',
+            order_number: orderNumber,
+          } = invoice;
+          const displayOrderNumber = orderNumber || `Order ${index + 1}`;
+          const formatAmount = (amount) =>
+            new Intl.NumberFormat('en-US', {
+              style: 'currency',
+              currency,
+            }).format(amount);
+
+          if (
+            itemTotal == null
+            || subtotal == null
+            || !Number.isFinite(Number(itemTotal))
+            || !Number.isFinite(Number(subtotal))
+          ) {
+            return {
+              orderNumber: displayOrderNumber,
+              matches: false,
+              message: 'Item total or subtotal could not be calculated.',
+            };
+          }
+
+          const matches = Math.abs(Number(itemTotal) - Number(subtotal)) <= 0.01;
+          return {
+            orderNumber: displayOrderNumber,
+            matches,
+            message: matches
+              ? `Items add up to the subtotal ${formatAmount(subtotal)}`
+              : `Item total ${formatAmount(itemTotal)} does not match the subtotal ${formatAmount(subtotal)}`,
+          };
+        })
+      );
+      setInvoiceReviewFlags(
+        invoices.flatMap((invoice, index) => {
+          const reportedFlags = Array.isArray(invoice.review_flags)
+            ? invoice.review_flags
+            : String(invoice.review_flags || '')
+              .split(';')
+              .map((flag) => flag.trim())
+              .filter(Boolean);
+          const flags = reportedFlags.length
+            ? reportedFlags
+            : invoice.needs_review
+              ? ['Manual review recommended']
+              : [];
+
+          if (flags.length === 0) return [];
+
+          return [{
+            orderNumber: invoice.order_number || `Order ${index + 1}`,
+            flags,
+          }];
+        })
+      );
       const importedTariffs = invoices.flatMap((invoice) =>
         (Array.isArray(invoice.items) ? invoice.items : []).map((item) => ({
           ...createEmptyTariff(),
@@ -215,6 +282,29 @@ export default function TariffFormModal({
             {invoiceMessage.text}
           </Alert>
         )}
+        {invoiceReviewFlags.length > 0 && (
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            <Typography variant="subtitle2">Invoice review flags</Typography>
+            {invoiceReviewFlags.map(({ orderNumber, flags }) => (
+              <Box key={orderNumber} component="div" sx={{ mt: 0.5 }}>
+                <strong>{orderNumber}:</strong> {flags.join(', ')}
+              </Box>
+            ))}
+          </Alert>
+        )}
+        {invoiceSubtotalChecks.length > 0 && (
+          <Alert
+            severity={invoiceSubtotalChecks.every((check) => check.matches) ? 'success' : 'warning'}
+            sx={{ mb: 2 }}
+          >
+            <Typography variant="subtitle2">Invoice item totals</Typography>
+            {invoiceSubtotalChecks.map(({ orderNumber, message }) => (
+              <Box key={orderNumber} component="div" sx={{ mt: 0.5 }}>
+                <strong>{orderNumber}:</strong> {message}
+              </Box>
+            ))}
+          </Alert>
+        )}
         {!declaration?.importer?.id && (
           <Alert severity="info" sx={{ mb: 2 }}>
             Assign an importer to this declaration before uploading an invoice.
@@ -246,7 +336,6 @@ export default function TariffFormModal({
               },
             }}
           >
-
             <AccordionSummary
               expandIcon={
                 <Iconify
@@ -275,16 +364,31 @@ export default function TariffFormModal({
                 },
               }}
             >
-
-
               <Typography sx={{ fontWeight: 600 }}>
                 {`Tariff #${index + 1}${tariff.isNew ? ' (New)' : ''}`}
               </Typography>
-
+              {needsClassificationReview(tariff) && (
+                <Box
+                  sx={{
+                    ml: 1.5,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 0.5,
+                    color: tariff.classification.confidence.toLowerCase() === 'low'
+                      ? 'error.main'
+                      : 'warning.dark',
+                  }}
+                >
+                  <Iconify icon="eva:alert-triangle-fill" sx={{ fontSize: 13 }} />
+                  <Typography
+                    variant="caption"
+                    sx={{ fontSize: '0.68rem', fontWeight: 600, lineHeight: 1 }}
+                  >
+                    Review · {tariff.classification.confidence} confidence
+                  </Typography>
+                </Box>
+              )}
               <Box sx={{ ml: 'auto', display: 'flex', gap: 1 }}>
-                {/*                 <IconButton onClick={(e) => { e.stopPropagation(); toggleEdit(index); }}>
-                  <Iconify icon={tariff.isEditing ? 'eva:close-fill' : 'eva:edit-fill'} />
-                </IconButton> */}
                 <IconButton onClick={(e) => { e.stopPropagation(); handleRemoveTariff(tariff.key); }} sx={{ color: 'error.main' }}>
                   <Iconify icon="eva:trash-2-outline" />
                 </IconButton>
@@ -292,6 +396,16 @@ export default function TariffFormModal({
             </AccordionSummary>
 
             <AccordionDetails sx={{ px: 3, py: 2 }}>
+              {needsClassificationReview(tariff) && (
+                <Alert
+                  severity={tariff.classification.confidence.toLowerCase() === 'low' ? 'error' : 'warning'}
+                  sx={{ mb: 2 }}
+                >
+                  This item has {tariff.classification.confidence} tariff confidence. Please review
+                  the tariff classification before saving.
+                  {tariff.classification.reason && ` ${tariff.classification.reason}`}
+                </Alert>
+              )}
               <Box component="form">
                 <Grid container spacing={2}>
                   {[
