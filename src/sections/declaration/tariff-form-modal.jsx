@@ -64,7 +64,7 @@ export default function TariffFormModal({
   const [expanded, setExpanded] = useState(false);
   const [uploadingInvoice, setUploadingInvoice] = useState(false);
   const [invoiceMessage, setInvoiceMessage] = useState(null);
-  const [invoiceSubtotalChecks, setInvoiceSubtotalChecks] = useState([]);
+  const [invoiceTotalChecks, setInvoiceTotalChecks] = useState([]);
 
   useEffect(() => {
     console.log("opening")
@@ -142,7 +142,7 @@ export default function TariffFormModal({
 
     setUploadingInvoice(true);
     setInvoiceMessage(null);
-    setInvoiceSubtotalChecks([]);
+    setInvoiceTotalChecks([]);
 
     try {
       const formData = new FormData();
@@ -159,14 +159,19 @@ export default function TariffFormModal({
       }
 
       const invoices = Array.isArray(result.invoices) ? result.invoices : [];
-      setInvoiceSubtotalChecks(
+      setInvoiceTotalChecks(
         invoices.map((invoice, index) => {
           const {
-            items_sum: itemTotal,
-            subtotal,
+            grand_total_on_invoice: invoiceTotal,
             currency = 'USD',
             order_number: orderNumber,
           } = invoice;
+          const itemPrices = Array.isArray(invoice.items)
+            ? invoice.items.map((item) => Number(item.price))
+            : [];
+          const itemTotal = itemPrices.length && itemPrices.every(Number.isFinite)
+            ? itemPrices.reduce((sum, price) => sum + price, 0)
+            : null;
           const displayOrderNumber = orderNumber || `Order ${index + 1}`;
           const formatAmount = (amount) =>
             new Intl.NumberFormat('en-US', {
@@ -176,24 +181,24 @@ export default function TariffFormModal({
 
           if (
             itemTotal == null
-            || subtotal == null
+            || invoiceTotal == null
             || !Number.isFinite(Number(itemTotal))
-            || !Number.isFinite(Number(subtotal))
+            || !Number.isFinite(Number(invoiceTotal))
           ) {
             return {
               orderNumber: displayOrderNumber,
               matches: false,
-              message: 'Item total or subtotal could not be calculated.',
+              message: 'Distributed item total or invoice total could not be calculated.',
             };
           }
 
-          const matches = Math.abs(Number(itemTotal) - Number(subtotal)) <= 0.01;
+          const matches = Math.abs(Number(itemTotal) - Number(invoiceTotal)) <= 0.01;
           return {
             orderNumber: displayOrderNumber,
             matches,
             message: matches
-              ? `Items add up to the subtotal ${formatAmount(subtotal)}`
-              : `Item total ${formatAmount(itemTotal)} does not match the subtotal ${formatAmount(subtotal)}`,
+              ? `Items add up to the invoice total ${formatAmount(invoiceTotal)}`
+              : `Distributed item total ${formatAmount(itemTotal)} does not match the invoice total ${formatAmount(invoiceTotal)}`,
           };
         })
       );
@@ -202,9 +207,10 @@ export default function TariffFormModal({
           ...createEmptyTariff(),
           code: item.tariff?.code || '',
           desc: item.description || '',
-          qty: 1,
+          qty: item.quantity ?? 1,
           cost: item.price ?? '',
           invNumber: invoice.order_number || '',
+          procedureCode: 'HOME',
           qtyUnit: item.tariff?.unit || '',
           classification: item.tariff || null,
         }))
@@ -258,13 +264,13 @@ export default function TariffFormModal({
             {invoiceMessage.text}
           </Alert>
         )}
-        {invoiceSubtotalChecks.length > 0 && (
+        {invoiceTotalChecks.length > 0 && (
           <Alert
-            severity={invoiceSubtotalChecks.every((check) => check.matches) ? 'success' : 'warning'}
+            severity={invoiceTotalChecks.every((check) => check.matches) ? 'success' : 'warning'}
             sx={{ mb: 2 }}
           >
-            <Typography variant="subtitle2">Invoice item totals</Typography>
-            {invoiceSubtotalChecks.map(({ orderNumber, message }) => (
+            <Typography variant="subtitle2">Distributed invoice item totals</Typography>
+            {invoiceTotalChecks.map(({ orderNumber, message }) => (
               <Box key={orderNumber} component="div" sx={{ mt: 0.5 }}>
                 <strong>{orderNumber}:</strong> {message}
               </Box>
