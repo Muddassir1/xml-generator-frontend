@@ -49,7 +49,81 @@ const createEmptyTariff = () => ({
 });
 
 const needsClassificationReview = (tariff) =>
-  ['medium', 'low'].includes(String(tariff.classification?.confidence || '').toLowerCase());
+  Boolean(
+    tariff.needs_review
+    || tariff.classification?.needs_review
+    || ['medium', 'low'].includes(String(tariff.classification?.confidence || '').toLowerCase())
+  );
+
+function groupInvoiceItems(invoices) {
+  const confidenceRank = { low: 0, medium: 1, high: 2 };
+
+  return invoices.flatMap((invoice) => {
+    const groups = [];
+    const groupsByCode = new Map();
+
+    (Array.isArray(invoice.items) ? invoice.items : []).forEach((item) => {
+      const code = String(item.tariff?.code || '').trim();
+      let group = code ? groupsByCode.get(code) : null;
+
+      if (!group) {
+        group = { code, items: [] };
+        groups.push(group);
+        if (code) groupsByCode.set(code, group);
+      }
+
+      group.items.push(item);
+    });
+
+    return groups.map(({ code, items }) => {
+      const prices = items.map((item) =>
+        item.price == null || !Number.isFinite(Number(item.price)) ? null : Number(item.price)
+      );
+      const hasAllPrices = prices.every((price) => price !== null);
+      const cost = hasAllPrices
+        ? prices.reduce((sum, price) => sum + Math.round(price * 100), 0) / 100
+        : '';
+      const quantity = items.reduce((sum, item) => {
+        const itemQuantity = item.quantity == null ? NaN : Number(item.quantity);
+        return sum + (Number.isFinite(itemQuantity) ? itemQuantity : 1);
+      }, 0);
+      const classifications = items.map((item) => item.tariff).filter(Boolean);
+      const classification = classifications.reduce((selected, candidate) => {
+        const selectedRank = confidenceRank[String(selected?.confidence || '').toLowerCase()] ?? 3;
+        const candidateRank = confidenceRank[String(candidate.confidence || '').toLowerCase()] ?? 3;
+        return candidateRank < selectedRank ? candidate : selected;
+      }, classifications[0] || null);
+      const reasons = [...new Set(classifications.map((item) => item.reason).filter(Boolean))];
+      const reviewNotes = [...new Set(items.map((item) => item.review_note).filter(Boolean))];
+      const needsReview = items.some((item) => item.needs_review || item.tariff?.needs_review);
+      const tariffClassification = classification
+        ? {
+          ...classification,
+          needs_review: classifications.some((item) => item.needs_review) || needsReview,
+          ...(reasons.length ? { reason: reasons.join('; ') } : {}),
+        }
+        : null;
+      const tariffDescription = items.find((item) => item.tariff?.description)?.tariff?.description;
+      const description = items.length > 1
+        ? tariffDescription || items[0].description
+        : items[0].description || tariffDescription;
+
+      return {
+        ...createEmptyTariff(),
+        code,
+        desc: String(description || '').slice(0, 100),
+        qty: quantity,
+        cost,
+        invNumber: invoice.order_number || '',
+        procedureCode: 'HOME',
+        qtyUnit: items.find((item) => item.tariff?.unit)?.tariff?.unit || '',
+        classification: tariffClassification,
+        needs_review: needsReview || !code,
+        review_note: reviewNotes.join('; '),
+      };
+    });
+  });
+}
 
 export default function TariffFormModal({
   open,
@@ -202,19 +276,7 @@ export default function TariffFormModal({
           };
         })
       );
-      const importedTariffs = invoices.flatMap((invoice) =>
-        (Array.isArray(invoice.items) ? invoice.items : []).map((item) => ({
-          ...createEmptyTariff(),
-          code: item.tariff?.code || '',
-          desc: item.description || '',
-          qty: item.quantity ?? 1,
-          cost: item.price ?? '',
-          invNumber: invoice.order_number || '',
-          procedureCode: 'HOME',
-          qtyUnit: item.tariff?.unit || '',
-          classification: item.tariff || null,
-        }))
-      );
+      const importedTariffs = groupInvoiceItems(invoices);
 
       if (importedTariffs.length === 0) {
         throw new Error('No invoice items with tariff data were found.');
@@ -340,23 +402,23 @@ export default function TariffFormModal({
                 {`Tariff #${index + 1}${tariff.isNew ? ' (New)' : ''}`}
               </Typography>
               {needsClassificationReview(tariff) && (
-                <Box
-                  sx={{
-                    ml: 1.5,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 0.5,
-                    color: tariff.classification.confidence.toLowerCase() === 'low'
-                      ? 'error.main'
-                      : 'warning.dark',
-                  }}
-                >
+                <Box sx={{
+                  ml: 1.5,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 0.5,
+                  color: !tariff.code || tariff.classification?.confidence?.toLowerCase() === 'low'
+                    ? 'error.main'
+                    : 'warning.dark',
+                }}>
                   <Iconify icon="eva:alert-triangle-fill" sx={{ fontSize: 13 }} />
                   <Typography
                     variant="caption"
                     sx={{ fontSize: '0.68rem', fontWeight: 600, lineHeight: 1 }}
                   >
-                    Review · {tariff.classification.confidence} confidence
+                    {tariff.classification?.confidence
+                      ? `Review · ${tariff.classification.confidence} confidence`
+                      : 'Review required'}
                   </Typography>
                 </Box>
               )}
@@ -370,12 +432,17 @@ export default function TariffFormModal({
             <AccordionDetails sx={{ px: 3, py: 2 }}>
               {needsClassificationReview(tariff) && (
                 <Alert
-                  severity={tariff.classification.confidence.toLowerCase() === 'low' ? 'error' : 'warning'}
+                  severity={!tariff.code || tariff.classification?.confidence?.toLowerCase() === 'low'
+                    ? 'error'
+                    : 'warning'}
                   sx={{ mb: 2 }}
                 >
-                  This item has {tariff.classification.confidence} tariff confidence. Please review
-                  the tariff classification before saving.
-                  {tariff.classification.reason && ` ${tariff.classification.reason}`}
+                  {tariff.classification?.confidence
+                    ? `This item has ${tariff.classification.confidence} tariff confidence. `
+                    : 'No tariff code was matched for this invoice item. '}
+                  Please review the tariff classification before saving.
+                  {tariff.review_note && ` ${tariff.review_note}`}
+                  {tariff.classification?.reason && ` ${tariff.classification.reason}`}
                 </Alert>
               )}
               <Box component="form">
