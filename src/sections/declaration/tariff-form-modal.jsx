@@ -138,7 +138,7 @@ export default function TariffFormModal({
   const [expanded, setExpanded] = useState(false);
   const [uploadingInvoice, setUploadingInvoice] = useState(false);
   const [invoiceMessage, setInvoiceMessage] = useState(null);
-  const [invoiceTotalChecks, setInvoiceTotalChecks] = useState([]);
+  const [invoiceTotals, setInvoiceTotals] = useState([]);
 
   useEffect(() => {
     console.log("opening")
@@ -216,7 +216,7 @@ export default function TariffFormModal({
 
     setUploadingInvoice(true);
     setInvoiceMessage(null);
-    setInvoiceTotalChecks([]);
+    setInvoiceTotals([]);
 
     try {
       const formData = new FormData();
@@ -233,47 +233,21 @@ export default function TariffFormModal({
       }
 
       const invoices = Array.isArray(result.invoices) ? result.invoices : [];
-      setInvoiceTotalChecks(
-        invoices.map((invoice, index) => {
-          const {
-            grand_total_on_invoice: invoiceTotal,
-            currency = 'USD',
-            order_number: orderNumber,
-          } = invoice;
-          const itemPrices = Array.isArray(invoice.items)
-            ? invoice.items.map((item) => Number(item.price))
-            : [];
-          const itemTotal = itemPrices.length && itemPrices.every(Number.isFinite)
-            ? itemPrices.reduce((sum, price) => sum + price, 0)
-            : null;
-          const displayOrderNumber = orderNumber || `Order ${index + 1}`;
+      setInvoiceTotals(
+        invoices.flatMap((invoice, index) => {
+          const { grand_total_capped: cappedTotal, currency = 'USD', vendor } = invoice;
+          if (cappedTotal == null || !Number.isFinite(Number(cappedTotal))) return [];
+
           const formatAmount = (amount) =>
             new Intl.NumberFormat('en-US', {
               style: 'currency',
               currency,
             }).format(amount);
 
-          if (
-            itemTotal == null
-            || invoiceTotal == null
-            || !Number.isFinite(Number(itemTotal))
-            || !Number.isFinite(Number(invoiceTotal))
-          ) {
-            return {
-              orderNumber: displayOrderNumber,
-              matches: false,
-              message: 'Distributed item total or invoice total could not be calculated.',
-            };
-          }
-
-          const matches = Math.abs(Number(itemTotal) - Number(invoiceTotal)) <= 0.01;
-          return {
-            orderNumber: displayOrderNumber,
-            matches,
-            message: matches
-              ? `Items add up to the invoice total ${formatAmount(invoiceTotal)}`
-              : `Distributed item total ${formatAmount(itemTotal)} does not match the invoice total ${formatAmount(invoiceTotal)}`,
-          };
+          return [{
+            id: `${invoice.order_number || vendor || 'invoice'}-${index}`,
+            message: `The total for invoice ${vendor || 'Unknown vendor'} is ${formatAmount(cappedTotal)}`,
+          }];
         })
       );
       const importedTariffs = groupInvoiceItems(invoices);
@@ -326,15 +300,12 @@ export default function TariffFormModal({
             {invoiceMessage.text}
           </Alert>
         )}
-        {invoiceTotalChecks.length > 0 && (
-          <Alert
-            severity={invoiceTotalChecks.every((check) => check.matches) ? 'success' : 'warning'}
-            sx={{ mb: 2 }}
-          >
-            <Typography variant="subtitle2">Distributed invoice item totals</Typography>
-            {invoiceTotalChecks.map(({ orderNumber, message }) => (
-              <Box key={orderNumber} component="div" sx={{ mt: 0.5 }}>
-                <strong>{orderNumber}:</strong> {message}
+        {invoiceTotals.length > 0 && (
+          <Alert severity="info" sx={{ mb: 2 }}>
+            <Typography variant="subtitle2">Invoice totals</Typography>
+            {invoiceTotals.map(({ id, message }) => (
+              <Box key={id} component="div" sx={{ mt: 0.5 }}>
+                {message}
               </Box>
             ))}
           </Alert>
